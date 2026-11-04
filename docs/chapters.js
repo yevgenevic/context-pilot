@@ -1,82 +1,181 @@
 /* Let the reader explore the recorded run without contacting a dashboard or model. */
 (() => {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const stacked = window.matchMedia('(min-width: 701px) and (max-width: 1023px)');
-  const small = window.matchMedia('(max-width: 700px)');
+  const compact = window.matchMedia('(max-width: 1023px)');
+  const wide = window.matchMedia('(min-width: 1280px)');
+  const readingTimes = [9000, 9500, 8000, 10000, 8500, 8000];
+
   for (const group of document.querySelectorAll('[data-cp-tabs]')) {
     const tabs = Array.from(group.querySelectorAll('[role="tab"]'));
-    const list = group.querySelector('[role="tablist"]');
     const panels = tabs.map(tab => document.getElementById(tab.getAttribute('aria-controls')));
-    const mobileCaption = document.createElement('p');
-    mobileCaption.className = 'cp-mobile-caption';
-    list.after(mobileCaption);
-    const playback = document.createElement('button');
-    playback.type = 'button'; playback.className = 'cp-playback'; playback.hidden = true;
-    group.append(playback);
-    for (let i = 0; i < tabs.length; i++) {
-      const caption = document.createElement('div'); caption.className = 'cp-tablet-caption';
-      const title = document.createElement('h3'); title.textContent = tabs[i].querySelector('b').textContent;
-      const text = document.createElement('p'); text.textContent = tabs[i].querySelector('span').textContent;
-      caption.append(title, text); panels[i].append(caption);
+    const home = panels[0].parentElement;
+    const list = group.querySelector('[role="tablist"]');
+    const isRun = Boolean(group.closest('#case'));
+    const caption = document.createElement('p');
+    caption.className = 'cp-mobile-caption';
+    list.after(caption);
+
+    // At narrow widths the first few screens are read in order. The remaining
+    // screens form a swipe gallery. Both layouts use the same panel elements.
+    const reader = document.createElement('div');
+    reader.className = 'cp-reader';
+    const rail = document.createElement('div');
+    rail.className = 'cp-reader-rail';
+    rail.tabIndex = 0;
+    rail.setAttribute('role', 'region');
+    rail.setAttribute('aria-label', isRun ? 'Ещё три этапа запуска' : 'Ещё три вида памяти');
+    const controls = document.createElement('div');
+    controls.className = 'cp-reader-controls';
+    const arrows = [-1, 1].map(direction => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = direction < 0 ? '←' : '→';
+      button.setAttribute('aria-label', direction < 0 ? 'Предыдущий экран' : 'Следующий экран');
+      button.addEventListener('click', () => {
+        const stops = [...rail.children].map(item => item.offsetLeft - rail.firstElementChild.offsetLeft);
+        const next = direction > 0 ? stops.find(stop => stop > rail.scrollLeft + 3)
+          : stops.reverse().find(stop => stop < rail.scrollLeft - 3);
+        rail.scrollTo({left: next ?? (direction > 0 ? rail.scrollWidth : 0),
+          behavior: reducedMotion.matches ? 'instant' : 'smooth'});
+      });
+      controls.append(button);
+      return button;
+    });
+    reader.append(rail, controls);
+    group.append(reader);
+    function updateArrows() {
+      arrows[0].disabled = rail.scrollLeft <= 2;
+      arrows[1].disabled = rail.scrollWidth - rail.clientWidth - rail.scrollLeft <= 2;
     }
-    let current = 0, manual = false, visible = false, hovered = false, timer;
-    const autoAllowed = () => !small.matches && !stacked.matches && !reducedMotion.matches;
-    function updateClock() {
-      clearTimeout(timer);
-      const running = visible && !document.hidden && !manual && !hovered && autoAllowed();
-      group.dataset.cpPlaying = running ? 'yes' : 'no';
-      playback.hidden = !autoAllowed();
-      playback.textContent = manual ? '▷ Автопоказ' : 'Ⅱ Автопоказ';
-      playback.setAttribute('aria-label', manual ? 'Включить автоматическую смену экранов' : 'Остановить автоматическую смену экранов');
-      if (running) timer = setTimeout(() => select((current + 1) % tabs.length), 10500);
+    rail.addEventListener('scroll', updateArrows, {passive: true});
+    new ResizeObserver(updateArrows).observe(rail);
+
+    tabs.forEach((tab, index) => {
+      const label = document.createElement('div');
+      label.className = 'cp-tablet-caption';
+      const title = document.createElement('h3');
+      title.textContent = tab.querySelector('b').textContent;
+      const text = document.createElement('p');
+      text.textContent = tab.querySelector('span').textContent;
+      label.append(title, text);
+      panels[index].append(label);
+    });
+
+    const playback = document.createElement('button');
+    playback.type = 'button';
+    playback.className = 'cp-playback';
+    if (isRun) group.append(playback);
+    let current = 0, elapsed = 0, frame = 0, lastTick = 0;
+    let paused = false, hovered = false, inView = false, finished = false;
+    function tick(now) {
+      if (lastTick) elapsed += now - lastTick;
+      lastTick = now;
+      const progress = Math.min(1, elapsed / readingTimes[current]);
+      tabs[current].style.setProperty('--cp-progress', progress);
+      if (progress < 1) frame = requestAnimationFrame(tick);
+      else if (current < tabs.length - 1) select(current + 1);
+      else {
+        finished = true;
+        refreshPlayback();
+      }
+    }
+    function refreshPlayback() {
+      cancelAnimationFrame(frame);
+      lastTick = 0;
+      const available = isRun && !compact.matches && !reducedMotion.matches;
+      playback.hidden = !available;
+      playback.textContent = finished ? 'Повторить показ' : paused ? 'Продолжить показ' : 'Пауза';
+      playback.setAttribute('aria-label', finished ? 'Повторить показ этапов' : paused
+        ? 'Продолжить автоматическую смену экранов' : 'Остановить автоматическую смену экранов');
+      if (available && inView && !paused && !hovered && !finished && !document.hidden)
+        frame = requestAnimationFrame(tick);
     }
     function select(index) {
       current = index;
+      elapsed = 0;
+      finished = false;
       tabs.forEach((tab, i) => {
-        const active = i === current;
-        tab.setAttribute('aria-selected', String(active)); tab.tabIndex = active ? 0 : -1;
-        panels[i].hidden = !stacked.matches && !active;
-        if (stacked.matches) {
-          panels[i].removeAttribute('aria-labelledby'); panels[i].setAttribute('role','group');
-          panels[i].setAttribute('aria-label',tab.querySelector('b').textContent); panels[i].removeAttribute('tabindex');
+        const active = i === index;
+        tab.setAttribute('aria-selected', String(active));
+        tab.tabIndex = active ? 0 : -1;
+        tab.style.setProperty('--cp-progress', active && (!isRun || paused) ? '1' : '0');
+        panels[i].hidden = !compact.matches && !active;
+      });
+      caption.textContent = tabs[index].querySelector('span').textContent;
+      refreshPlayback();
+    }
+    function layout() {
+      group.classList.toggle('cp-reading', compact.matches);
+      reader.hidden = !compact.matches;
+      panels.forEach((panel, index) => {
+        if (compact.matches) {
+          if (index < (isRun ? 3 : 2)) reader.insertBefore(panel, rail);
+          else rail.append(panel);
+          panel.setAttribute('role', 'group');
+          panel.removeAttribute('aria-labelledby');
+          panel.setAttribute('aria-label', tabs[index].querySelector('b').textContent);
+          panel.removeAttribute('tabindex');
         } else {
-          panels[i].setAttribute('role','tabpanel'); panels[i].removeAttribute('aria-label');
-          panels[i].setAttribute('aria-labelledby',tab.id); panels[i].tabIndex = 0;
+          home.append(panel);
+          panel.setAttribute('role', 'tabpanel');
+          panel.setAttribute('aria-labelledby', tabs[index].id);
+          panel.removeAttribute('aria-label');
+          panel.tabIndex = 0;
         }
       });
-      list.setAttribute('aria-orientation',small.matches ? 'horizontal' : 'vertical');
-      mobileCaption.textContent = tabs[current].querySelector('span').textContent;
-      if (small.matches) {
-        const tab = tabs[current].getBoundingClientRect(), row = list.getBoundingClientRect();
-        if (tab.right > row.right) list.scrollLeft += tab.right - row.right + 8;
-        else if (tab.left < row.left) list.scrollLeft -= row.left - tab.left + 8;
-      }
-      updateClock();
+      list.setAttribute('aria-orientation', wide.matches ? 'vertical' : 'horizontal');
+      select(current);
+      updateArrows();
     }
-    tabs.forEach((tab,i) => {
-      tab.addEventListener('click', () => {manual = true; select(i)});
-      tab.addEventListener('keydown',event => {
-        let next = i;
-        if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (i+1) % tabs.length;
-        else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (i+tabs.length-1) % tabs.length;
-        else if (event.key === 'Home') next = 0;
-        else if (event.key === 'End') next = tabs.length - 1;
-        else return;
-        event.preventDefault(); manual = true; select(next); tabs[next].focus();
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => { paused = true; select(index); });
+      tab.addEventListener('keydown', event => {
+        const keys = {
+          ArrowRight: (index + 1) % tabs.length, ArrowDown: (index + 1) % tabs.length,
+          ArrowLeft: (index + tabs.length - 1) % tabs.length, ArrowUp: (index + tabs.length - 1) % tabs.length,
+          Home: 0, End: tabs.length - 1
+        };
+        if (!(event.key in keys)) return;
+        event.preventDefault();
+        paused = true;
+        select(keys[event.key]);
+        tabs[current].focus();
       });
     });
-    playback.addEventListener('click',()=>{manual=!manual; updateClock()});
-    group.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'){hovered=true;updateClock()}});
-    group.addEventListener('pointerleave',()=>{hovered=false;updateClock()});
-    group.addEventListener('focusin',event=>{if(event.target!==playback){manual=true;updateClock()}});
-    document.addEventListener('visibilitychange',updateClock);
-    stacked.addEventListener('change',()=>select(current));small.addEventListener('change',()=>select(current));
-    reducedMotion.addEventListener('change',updateClock);
-    select(0);
-    if ('IntersectionObserver' in window) new IntersectionObserver(entries=>{
-      visible=entries[0].isIntersecting;updateClock();
-    },{threshold:.28}).observe(group);
+    playback.addEventListener('click', () => {
+      if (finished) { paused = false; select(0); }
+      else { paused = !paused; refreshPlayback(); }
+    });
+    group.addEventListener('pointerenter', event => {
+      if (event.pointerType === 'mouse') { hovered = true; refreshPlayback(); }
+    });
+    group.addEventListener('pointerleave', () => { hovered = false; refreshPlayback(); });
+    group.addEventListener('focusin', event => {
+      if (event.target !== playback && isRun) { paused = true; refreshPlayback(); }
+    });
+    compact.addEventListener('change', layout);
+    wide.addEventListener('change', layout);
+    reducedMotion.addEventListener('change', refreshPlayback);
+    document.addEventListener('visibilitychange', refreshPlayback);
+    layout();
+    const observer = new IntersectionObserver(([entry]) => {
+      inView = entry.isIntersecting;
+      refreshPlayback();
+    }, {rootMargin: '0px 0px -12% 0px'});
+    observer.observe(group);
   }
+  // Recover a visible frame immediately on deep links or reduced-motion devices.
+  // Only a graphic that actually enters the viewport gets an entrance motion.
+  const stages = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      const reply = entry.target.classList.contains('cp-q');
+      const motion = reply ? 'cp-reply-enter' : 'cp-stage-enter';
+      entry.target.classList.toggle(motion, entry.isIntersecting);
+    }
+  }, {rootMargin: '0px 0px -9% 0px', threshold: .12});
+  document.querySelectorAll('.cp-story-art, .cp-memory .cp-map, .cp-darkdoc, .cp-q').forEach(stage => stages.observe(stage));
+
   const cards = Array.from(document.querySelectorAll('.cp-values .cp-triptych article'));
   for (const card of cards) {
     const activate = () => {for (const item of cards) item.classList.toggle('cp-card-active',item===card)};
@@ -93,10 +192,6 @@
       story.dataset.storyColor=String(i);
     }));
   }
-  const questions = Array.from(document.querySelectorAll('.cp-questions details'));
-  for (const details of questions) details.addEventListener('toggle',()=>{
-    if(details.open) for(const other of questions) if(other!==details&&other.open) other.open=false;
-  });
   const copy=document.getElementById('copy'), command=document.getElementById('commands'), status=document.getElementById('cp-copy-status');
   if(copy&&command&&status) copy.addEventListener('click',async()=>{
     try {

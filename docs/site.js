@@ -10,3 +10,38 @@
   const tint = () => mast.classList.toggle('is-scrolled', scrollY > 28);
   tint(); window.addEventListener('scroll', tint, {passive:true});
 })();
+
+// Keep the heading, its hard line breaks and its accessible name. Without motion
+// or IntersectionObserver, the original HTML remains fully visible.
+(() => {
+  if (!window.IntersectionObserver || !matchMedia('(prefers-reduced-motion: no-preference)').matches) return;
+  const headings = document.querySelectorAll('.cp-chapter h2');
+  const observer = new IntersectionObserver(entries => {
+    for (const {target, isIntersecting} of entries) {
+      if (!isIntersecting) continue;
+      target.classList.add('cp-seen');
+      observer.unobserve(target);
+    }
+  }, {rootMargin:'0px 0px -4% 0px'});
+  for (const h of headings) {
+    const label = [...h.childNodes].map(n => n.nodeName === 'BR' ? ' ' : n.textContent).join('').replace(/\s+/g, ' ').trim();
+    let i = 0;
+    for (const node of [...h.childNodes]) {
+      if (node.nodeType !== Node.TEXT_NODE) continue;
+      const fragment = document.createDocumentFragment();
+      for (const token of node.textContent.match(/\s+|\S+/g) || []) {
+        if (!token.trim()) {fragment.append(token); continue;}
+        const word = document.createElement('span');
+        word.className = 'cp-head-word';
+        word.setAttribute('aria-hidden','true');
+        word.style.setProperty('--word', i++);
+        word.textContent = token;
+        fragment.append(word);
+      }
+      node.replaceWith(fragment);
+    }
+    h.setAttribute('aria-label',label);
+    h.classList.add('cp-reveal-ready');
+    observer.observe(h);
+  }
+})();
