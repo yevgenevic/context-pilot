@@ -1,0 +1,6 @@
+{
+  "name": "context-pilot-dashboard", "private": true, "type": "module",
+  "scripts": {"build": "tsc --noEmit && esbuild dashboard.tsx --bundle --minify --charset=utf8 --target=es2022 --outfile=dist/dashboard.js"},
+  "dependencies": {"react": "19.2.6", "react-dom": "19.2.6", "lucide-react": "0.562.0"},
+  "devDependencies": {"esbuild":"0.25.12", "typescript":"5.9.3", "@types/react":"19.2.14", "@types/react-dom":"19.2.3"}
+}

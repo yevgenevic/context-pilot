@@ -1,0 +1,13 @@
+{
+  "name": "context-pilot-mvp",
+  "version": "0.1.3",
+  "private": true,
+  "type": "module",
+  "bin": { "pilot": "./src/pilot.ts" },
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "release:zip": "npm --prefix ui run build && python3 scripts/release_zip.py",
+    "release:tgz": "npm --prefix ui run build && node scripts/release-package.mjs"
+  }
+}
