@@ -274,3 +274,16 @@
   .pilot-hero-mini-app { width:80%; height:86%; left:13%; }
   .pilot-hero-mini-report { top:19%; left:4%; transform:scale(1.14); transform-origin:0 0; }
 }
+/* In a narrow desktop window the static composition still has room to breathe. */
+@media (min-width:480px) and (max-width:760px) {
+  .pilot-hero-intro { padding-top:22vw; }
+  .pilot-hero-intro h1 { margin-top:40px; line-height:1.11; }
+  .pilot-hero-intro p { width:min(calc(100% - 56px),485px); }
+  .pilot-hero-static-scene { width:100%; margin-top:clamp(40px,10vw,80px); }
+}
+@media(min-width:640px) and (max-width:760px) {
+  .pilot-hero-intro p { max-width:480px; text-wrap:wrap; }
+  .pilot-hero-static-scene { margin-top:80px; height:calc((96vw - 160px) * .735 + 85px); }
+  .pilot-hero-mini-app { left:calc(2% + 80px); width:calc(96% - 160px); height:calc((96vw - 160px) * .735); }
+  .pilot-hero-mini-report { top:calc((96vw - 160px) * .222); left:17.4%; width:21.1%; min-height:calc(21vw * 2.16); display:flex; flex-direction:column; justify-content:space-between; }
+}
