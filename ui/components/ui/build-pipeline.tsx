@@ -3,6 +3,7 @@ import {ArrowDownToLine, ArrowRight, CornerDownRight, Plus} from 'lucide-react';
 import {duration, labels, time, type Pipeline, type Snapshot, type Stage, type View} from '../../model';
 import {Changes, Journal, ReportContent, ShortText, stageName, TaskFacts, Transfer} from './stage-content';
 import {AgentContext, RouteContext} from './context-meter';
+import {RunOverview} from './run-overview';
 
 function ClarificationPanel({flow, busy, onAnswered}: {
   flow: Pipeline; busy: boolean; onAnswered: () => void;
@@ -128,6 +129,7 @@ export function BuildPipeline({flow,flows,stage,snapshot,view,busy,online,onCrea
       {flows.map(f=><option key={f.id} value={f.id}>{f.manual?f.title:f.id+' · '+f.title.slice(0,70)}</option>)}
     </select></label><button className="create" disabled={!online||busy||snapshot.codex?.state!=='ready'} onClick={onCreate}><Plus size={14}/>Новая идея</button>
   </div></Masthead>
+    <RunOverview flow={flow} online={online} selected={stage} onPick={onPick}/>
     <article className="card pipeline">
       <header className="topbar"><span className="project">{snapshot.project} <span>/ {snapshot.branch}</span></span>
         <nav aria-label="Раздел запуска">

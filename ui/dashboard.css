@@ -190,3 +190,72 @@ dialog::backdrop { background: #20332955 }
   .create { padding: 4px 0 }
 }
 @media(prefers-reduced-motion:reduce) { button:active:not(:disabled), a:active { transform: none } }
+
+/* The run overview uses the same live pipeline as the detailed workspace. */
+.shell { width: min(1200px, calc(100% - 48px)); }
+.mission { margin: 4px 0 28px; }
+.mission-heading { display:flex;align-items:center;justify-content:space-between;margin:20px 2px 14px;font-size:12px;color:var(--dim); }
+.mission-heading > span { display:flex;align-items:center;gap:7px; }
+.mission-connection::before { content:'';width:6px;height:6px;border-radius:50%;background:#a07856; }
+.mission-connection[data-online=true]::before { background:#39805b; }
+.mission-hero { padding:32px 34px 28px;border:1px solid #c8d5ca;border-radius:22px;background:linear-gradient(110deg,#e6eee1,#f1f4e9);overflow:hidden; }
+.mission-hero[data-tone=attention] { background:linear-gradient(110deg,#f7e5cc,#f9efde);border-color:#e2cdac; }
+.mission-hero[data-tone=error] { background:linear-gradient(110deg,#f5e3db,#faeee7);border-color:#e2c3b6; }
+.mission-label { display:flex;align-items:center;gap:8px;font-size:12px;color:#425b45;font-weight:600;margin-bottom:12px; }
+.mission-hero h2 { font-size:clamp(27px,3.5vw,43px);font-weight:550;line-height:1.15;letter-spacing:-.05em;margin-bottom:12px; }
+.mission-hero > p { max-width:640px;font-size:15px;color:#4b5b4f;line-height:1.6; }
+.mission-progress { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(160px,100%),1fr));gap:12px;margin-top:32px; }
+.mission-progress button { position:relative;text-align:left;padding:16px 12px 8px 0;display:grid;grid-template-columns:23px 1fr;align-content:start;gap:4px 4px; }
+.mission-track { position:absolute;top:0;left:0;right:0;height:4px;background:#61735a24;border-radius:5px; }
+.mission-progress button[data-state=done] .mission-track { background:#326347; }
+.mission-progress button[data-state=active] .mission-track { background:repeating-linear-gradient(115deg,#426a4f 0 7px,#94ac8e 7px 14px); }
+.mission-progress button[data-state=failed] .mission-track { background:#b36a50; }
+.mission-progress button[data-state=needs_answer] .mission-track,.mission-progress button[data-state=interrupted] .mission-track { background:#bd9555; }
+.mission-stage-index { display:flex;align-items:center;font:11px/20px var(--mono);color:#5b6a5d; }
+.mission-progress strong { font-size:13px;line-height:20px;font-weight:600; }
+.mission-progress small { grid-column:2;font-size:11px;color:#64705e; }
+.mission-progress button[aria-pressed=true] strong { text-decoration:underline;text-underline-offset:4px; }
+.mission-metrics { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0 24px; }
+.mission-metrics > div { border:1px solid #dce2d9;background:#ffffffb0;padding:20px 22px;border-radius:16px; }
+.mission-metrics > div > span { font-size:12px;color:#647166; }
+.mission-metrics strong { display:block;font-size:29px;font-weight:550;letter-spacing:-.055em;line-height:1.25;margin:12px 0 7px; }
+.mission-metrics strong small { font-size:17px;color:#819080;font-weight:400; }
+.mission-metrics p { font-size:11px;color:#728071; }
+.mission-quality,.mission-feed { background:#fff;border:1px solid #dce2d9;border-radius:18px;padding:23px 26px;margin-top:14px; }
+.mission-section-title { display:flex;align-items:center;justify-content:space-between;margin-bottom:7px; }
+.mission-section-title h3 { display:flex;align-items:center;gap:9px;font-size:15px;letter-spacing:-.025em; }
+.mission-section-title > span { font:11px var(--mono);color:#778174; }
+.mission-gates { display:grid;grid-template-columns:1fr 1fr;column-gap:32px; }
+.mission-gates > div { display:flex;gap:12px;align-items:center;min-width:0;border-bottom:1px solid #edf0e9;padding:17px 0; }
+.mission-gates i { width:28px;height:28px;flex:none;border-radius:50%;background:#f3f4ef;color:#8b9587;display:grid;place-items:center; }
+.mission-gates [data-state=passed] i { background:#e7f0e3;color:#326347; }
+.mission-gates [data-state=failed] i { background:#f7e9e0;color:#a36a4b; }
+.mission-gates b { font-size:13px;font-weight:600; }
+.mission-gates p { font-size:12px;color:#697668;margin-top:3px; }
+.mission-gates > div > span { margin-left:auto;color:#9aa291;font:10px var(--mono); }
+.mission-report { display:flex;align-items:center;gap:9px;color:#326347;font-size:12px;padding:16px 0 0; }
+.mission-feed summary { display:flex;justify-content:space-between;align-items:center;gap:12px;list-style:none;font-size:14px;font-weight:550; }
+.mission-feed summary::-webkit-details-marker { display:none; }
+.mission-feed summary span { display:flex;align-items:center;gap:9px; }
+.mission-feed summary small { font-size:11px;color:#83907f;font-weight:400; }
+.mission-feed ol { list-style:none;margin:16px 0 0;padding:0; }
+.mission-feed li { display:grid;grid-template-columns:73px minmax(0,1fr);gap:12px;padding:12px 0;border-top:1px solid #edf0e9; }
+.mission-feed time { padding-top:3px;color:#81907b;font:11px/18px var(--mono); }
+.mission-feed li button { text-align:left;font-size:13px;line-height:1.5;overflow-wrap:anywhere; }
+.mission-feed li button small { display:block;font-size:10px;color:#778672;margin-bottom:4px; }
+@media(max-width:700px) {
+  .shell { width:calc(100% - 28px);margin-top:18px; }
+  .mission-hero { padding:24px 20px;border-radius:18px; }
+  .mission-progress { grid-template-columns:1fr 1fr;gap:14px; }
+  .mission-metrics { grid-template-columns:1fr 1fr;gap:10px; }
+  .mission-metrics > div { padding:16px; }
+  .mission-metrics strong { font-size:25px; }
+  .mission-quality,.mission-feed { padding:20px; }
+  .mission-gates { grid-template-columns:1fr; }
+  .mission-feed summary small { display:none; }
+  .mission-connection { font-size:10px; }
+}
+.mission-feed li > div { font-size:13px;line-height:1.5;overflow-wrap:anywhere; }
+.mission-feed li > div > button { display:block;color:#65785e;font-size:10px;margin-bottom:4px;padding:0; }
+.pipeline { scroll-margin-top:20px; }
+.mission-next { display:inline-flex;align-items:center;gap:9px;margin-top:18px;padding:9px 14px;border-radius:99px;background:#284b35;color:#fff;font-size:12px; }
