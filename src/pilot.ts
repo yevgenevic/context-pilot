@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {phases} from './workflow.ts';
 import {redactSecrets} from './privacy.ts';
 import { readGit } from './git-read.ts';
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
@@ -141,7 +142,7 @@ async function main(args: string[]) {
   }
   type Plan = ReturnType<typeof ideas>[number];
   function stagePlan(plans:Plan[], key:string) {
-    return plans.find(plan=>key===plan.id+'-plan' || (plan.verification && key===plan.id+'-verify') || plan.tasks.some(task=>task.id===key));
+    return plans.find(plan=>key===plan.id+'-plan' || (plan.verification && key===plan.id+'-verify') || plan.tasks.some(task=>task.id===key) || Boolean(plan.workflow && phases.some(([phase])=>key===plan.id+'-'+(phase==='review'?'verify':phase==='accept'?'blind':phase))));
   }
   function changesFor(plan?:Plan) { return plan ? pauseChanges(root,logs,plan) : null; }
   function exportHandoff(key:string) {
@@ -192,7 +193,7 @@ async function main(args: string[]) {
       const tasks = listTasks();
       const runs = activity(logs);
       const plans = ideas(memory);
-      const special = selected && plans.some(p=>selected===p.id+'-plan' || (p.verification && selected===p.id+'-verify'));
+      const special = selected && stagePlan(plans,selected) && !plans.some(p=>p.tasks.some(t=>t.id===selected));
       const manual=standaloneContext(logs);
       if (special) return {...detected,standaloneContext:manual,project:path.basename(root),branch:git(['branch','--show-current'],root)||'detached HEAD',pauseChanges:changesFor(stagePlan(plans,selected!)),
         plans,tasks,runs,selected,packet:'',attempts:packets(logs,selected),notes:[]};

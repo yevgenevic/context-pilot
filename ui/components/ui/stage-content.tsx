@@ -4,6 +4,7 @@ import {saveFile, time, type Entry, type PauseChanges, type Pipeline, type Stage
 import {AgentContext} from './context-meter';
 
 export function stageName(stage: Stage) {
+  if(stage.phase)return stage.name;
   if (stage.role === 'planner') return 'План';
   if (stage.role === 'verifier') return 'Приёмка';
   return stage.name.replace(/^\d+[.)]\s+/, '');

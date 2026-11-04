@@ -20,7 +20,7 @@ function enclosingCheckout(cwd: string): string | undefined {
   }
 }
 
-export function externalCommand(name: 'git' | 'codex' | 'claude', cwd: string, project?: string) {
+export function externalCommand(name: 'git' | 'codex' | 'claude' | 'npm', cwd: string, project?: string) {
   const current = realpathSync.native(cwd);
   const boundary = enclosingCheckout(current) ?? (project && realpathSync.native(project));
   const unsafe = (file: string) => boundary ? within(boundary, file) : file === current;
@@ -32,7 +32,7 @@ export function externalCommand(name: 'git' | 'codex' | 'claude', cwd: string, p
     if (!dir || unsafe(dir)) continue;
     // Keep project-owned interpreters or Git out of child PATH as well. A
     // legitimate external CLI can use /usr/bin/env node or start git itself.
-    if (['node','git','codex','claude','sh','bash'].some(tool => {
+    if (['node','git','codex','claude','npm','sh','bash'].some(tool => {
       const target = realPath(path.join(dir, tool + suffix));
       return target && unsafe(target);
     })) continue;

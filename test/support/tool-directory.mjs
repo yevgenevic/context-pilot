@@ -2,6 +2,8 @@ import {mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 
+process.env.PILOT_WORKFLOW = 'classic';
+
 // Test providers stand in for an installed CLI, outside the project under test.
 export function toolDirectory(t) {
   const dir = mkdtempSync(path.join(tmpdir(), 'pilot-provider-'));

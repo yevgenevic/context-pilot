@@ -259,3 +259,7 @@ dialog::backdrop { background: #20332955 }
 .mission-feed li > div > button { display:block;color:#65785e;font-size:10px;margin-bottom:4px;padding:0; }
 .pipeline { scroll-margin-top:20px; }
 .mission-next { display:inline-flex;align-items:center;gap:9px;margin-top:18px;padding:9px 14px;border-radius:99px;background:#284b35;color:#fff;font-size:12px; }
+@media(min-width:701px) {
+  .mission-progress:has(>button:nth-child(8)) {grid-template-columns:repeat(4,minmax(0,1fr));row-gap:20px;}
+}
+.workflow-tasks {display:grid;gap:8px;margin-top:14px;}

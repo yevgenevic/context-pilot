@@ -1,3 +1,5 @@
+import {newWorkflow, setPhase, requirementsSchema, briefingSchema, specificationSchema, auditSchema, validateRequirements, requirementCoverage, type Workflow, type PhaseId} from './workflow.ts';
+import {createBlindCopy, prepareBlindDependencies} from './blind-copy.ts';
 import {redactJsonString, redactSecrets} from './privacy.ts';
 import { checkEvidence, projectTest, requiredCommands, rootPrefix } from './acceptance.ts';
 import { randomUUID } from 'node:crypto';
@@ -12,12 +14,13 @@ import { describePause, freezePause, recordPause, type PauseChanges, type PauseR
 import {ContextCapacityError, readContextPolicy, runContextStage, workspaceStatus, type ContextPolicy, type ContextTransfer} from './rotation.ts';
 
 type Ticket = {
-  id: string; title: string; text: string; files: string[]; rules: string[];
+  id: string; title: string; text: string; files: string[]; rules: string[]; requirementIds?:string[];
   checks: string[]; acceptanceCommands?:string[]; base: string | null;
   state: 'pending' | 'running' | 'done' | 'failed' | 'interrupted'; summary: string;
 };
 export type Clarification = {id: string; question: string; options: string[]; answer?: string};
 type Idea = {
+  workflow?: Workflow;
   clarifications?: Clarification[];
   id: string; idea: string; pid: number; created: string;
   state: 'awaiting_answers' | 'planning' | 'building' | 'verifying' | 'done' | 'failed' | 'interrupted';
@@ -123,11 +126,12 @@ function tickets(raw: unknown, prefix: string, base: string | null, knownRules: 
     const checks = stringList(item.checks);
     if (!checks.length) throw Error('У задачи нет проверки результата.');
     return {id: prefix + '-' + (i+1), title:cleanText(item.title, 180), text:cleanText(item.text),
-      files, rules, checks, acceptanceCommands:item.acceptanceCommands===undefined?undefined:stringList(item.acceptanceCommands), base, state:'pending', summary:''};
+      files, rules, checks, requirementIds:item.requirementIds===undefined?undefined:stringList(item.requirementIds), acceptanceCommands:item.acceptanceCommands===undefined?undefined:stringList(item.acceptanceCommands), base, state:'pending', summary:''};
   });
 }
 
 type Report = {
+  kind?:'blind';copyId?:string;
   status: 'passed' | 'failed' | 'blocked';
   summary: string;
   checks: {requirement: string; expected: string; actual: string; passed: boolean}[];
@@ -156,8 +160,9 @@ function reviewerPrompt(plan: Idea, project: Project) {
     'Ты независимый проверяющий. Получаешь исходное требование и доступ к готовому проекту только для чтения.',
     'Проверь каждое требование через нормальный вход в продукт. Сам запусти реальные команды и граничные сценарии. Не используй отчёты авторов для проверки поведения продукта. Для каждого сценария запиши наблюдаемый вывод. Не меняй файлы.',
     'Если для проверки обычного файла нет подходящих тестовых данных, верни status needs_files и fixtures — список до 6 входных текстовых файлов с простыми именами и точным содержимым. Координатор создаст их во временном каталоге вне проекта, затем ты запустишь продукт с их путями. Файлы могут быть пустыми или некорректными для негативных сценариев. Запрашивай только синтетические входные данные, не тестовые программы. Если файлы не нужны, верни fixtures=[].',
+    'Работаешь только для чтения. Не используй shell heredoc и команды, создающие временные файлы. Для синтетических входов используй needs_files, для коротких проверок — node -e. Недоступность среды означает blocked, а не дефект продукта.',
     'По каждому требованию укажи ожидаемое и наблюдаемое. passed допустим только после фактической проверки всех требований. Расхождение — failed. Невозможность проверить — blocked.',
-    'Обязательные команды приёмки перечислены ниже. Запусти каждую дословно отдельным вызовом в корне проекта. Не объединяй команды, не скрывай код выхода. Отрицательные сценарии проверяй тестом, который ожидает нужную ошибку и сам возвращает 0. Не подменяй упавшую команду альтернативой. При коде, отличном от 0, верни failed. Если полноценный запуск недоступен, верни blocked.',
+    'Обязательные команды приёмки перечислены ниже. Запусти каждую дословно отдельным вызовом в корне проекта. Не объединяй команды, не скрывай код выхода. Отрицательные сценарии проверяй тестом, который ожидает нужную ошибку и сам возвращает 0. Не подменяй упавшую команду альтернативой. При ненулевом коде обязательной команды верни failed. Если полноценный запуск недоступен, верни blocked.',
     'Для подтверждения каталога в старых версиях Codex можно добавить перед каждой командой точный префикс: '+rootPrefix(project.root),
     JSON.stringify(plan.verification?.requiredCommands ?? []),
     'Для требований о процессе ниже факты координатора. Каждая попытка запускается в отдельной сессии Codex. receivedOnAttempts вычислено поиском полного итога предыдущего агента в сохранённом входе. Если требуется проверить передачу конкретного примера, можешь прочитать соответствующий вход в каталоге '+path.join(path.dirname(project.logs),'packets')+'/<task>/<attempt>.md. Для функциональных требований сам запусти продукт.',
@@ -187,9 +192,17 @@ function report(raw: Verdict, commands: CommandResult[], required:string[], root
   return {status:raw.status,summary,checks:allChecks,commands};
 }
 // The coordinator writes input data; both review sessions retain the read-only sandbox.
-async function verifyProduct(plan: Idea, project: Project, run: (prompt:string, commands:CommandResult[]) => Promise<ReviewResponse>): Promise<Report> {
+async function verifyProduct(plan: Idea, project: Project, run: (prompt:string, commands:CommandResult[]) => Promise<ReviewResponse>, blind=false,baselineRoot?:string): Promise<Report> {
   const required=plan.verification?.requiredCommands ?? [];
-  const prompt = reviewerPrompt(plan,project);
+  const prompt = blind ? [
+    'Ты проводишь слепую приёмку G4. Это отдельная копия готового проекта. Не меняй исходники.',
+    'У тебя только исходная идея пользователя и ответы. Спецификация, план и отчёты исполнителей не переданы. Сам выбери сценарии по исходному брифу, запусти реальный продукт, проверь ошибки и границы. Не считай тесты автора достаточным доказательством.',
+    'Для недостающих синтетических входных файлов верни needs_files и fixtures. Для каждого требования укажи ожидаемое и наблюдаемое. passed только после реальных команд. Любое расхождение — failed, невозможность проверить — blocked.',
+    'Не используй shell heredoc в режиме чтения. Для новых тестовых входов верни needs_files, для коротких проверок используй node -e. Сбой среды — blocked.',
+    'Также отдельно запусти обязательные команды без цепочек. Они должны завершиться с кодом 0. Для подтверждения корня можно использовать '+rootPrefix(project.root),
+    ...(baselineRoot?['Исходные файлы пользователя, сохранённые ДО работы агентов, доступны только для чтения здесь: '+baselineRoot+'. Это исходная версия продукта без истории, инструкций и памяти авторов. Если требуется сохранить прежнее поведение, самостоятельно сравни обычный вход обеих версий на одинаковых данных. Проверяй обязательные команды в итоговой копии, не в исходной.']:[]),
+    JSON.stringify(required),ideaBrief(plan)
+  ].join('\n\n') : reviewerPrompt(plan,project);
   let commands:CommandResult[] = [];
   let raw = await run(prompt,commands);
   if (raw.status !== 'needs_files') return report(raw,commands,required,project.root);
@@ -247,7 +260,10 @@ function progressPacket(project: Project, stage: string, original: string, failu
     'Последние события предыдущей попытки:\n'+(recent || 'нет записей')].join('\n\n')+'\n';
 }
 export function startIdea(project:Project,input:string) {
+  const mode=process.env.PILOT_WORKFLOW ?? 'eight';
+  if(!['eight','classic'].includes(mode))throw Error('PILOT_WORKFLOW: eight или classic.');
   const plan:Idea = {id:'P-'+randomUUID().slice(0,8),idea:cleanText(input,12000),created:new Date().toISOString(),base:project.base,pid:process.pid,state:'planning',tasks:[],error:''};
+  if(mode==='eight')plan.workflow=newWorkflow();
   return coordinate(project,plan.id,{kind:'start',plan});
 }
 export function resumeIdea(project:Project,id:string) {
@@ -283,7 +299,7 @@ function coordinate(project:Project,id:string,request:Request={kind:'resume'}) {
     if (existsSync(legacy) && alive(Number(readFileSync(legacy,'utf8')))) throw Error('Работает предыдущая версия координатора.');
     const previous = request.kind==='start' ? request.plan : ideas(memory).find(p=>p.id===id);
     if (!previous) throw Error('Запуск не найден.');
-    const retryReview = previous?.state==='failed' && previous.verification?.reports.at(-1)?.status==='blocked'
+    const retryReview = previous?.state==='failed' && (previous.verification?.reports.at(-1)?.status==='blocked' || Boolean(previous.workflow && previous.verification?.reports.length))
       && previous.tasks.every(task=>task.state==='done');
     if (request.kind==='resume' && previous.state==='failed' && previous.retryStage) {
       recovering={stage:previous.retryStage,reason:previous.error};
@@ -321,14 +337,14 @@ function coordinate(project:Project,id:string,request:Request={kind:'resume'}) {
     if (existsSync(marker)) stop();
     signal.signal.throwIfAborted();
   }
-  async function agent(stage:string,prompt:string,schema:object,writable:boolean,commands?:CommandResult[]) {
+  async function agent(stage:string,prompt:string,schema:object,writable:boolean,commands?:CommandResult[],workingRoot=root) {
     currentStage=stage;
     assertRunning();
-    if (recovering?.stage===stage) {
+    if (recovering?.stage===stage && !stage.endsWith('-blind')) {
       prompt=progressPacket(project,stage,prompt,recovering.reason);
       recovering=undefined;
     }
-    if (resuming?.stage===stage) {
+    if (resuming?.stage===stage && !stage.endsWith('-blind')) {
       prompt=prompt.trimEnd()+'\n\n'+describePause(resuming)+'\n';
       resuming=null;
     }
@@ -336,7 +352,7 @@ function coordinate(project:Project,id:string,request:Request={kind:'resume'}) {
     writeFileSync(schemaPath,JSON.stringify(schema));
     let lastMessage='';
     const code=await runContextStage({
-      root,logs,stage,prompt,policy:plan.contextPolicy!,signal:signal.signal,transfers:transfersThisRun,assertRunning,
+      root:workingRoot,logs,stage,prompt,policy:plan.contextPolicy!,signal:signal.signal,transfers:transfersThisRun,assertRunning,
       onTransfer(transfer) {
         (plan.contextTransfers??=[]).push(transfer);
         transfersThisRun.push(transfer);
@@ -348,7 +364,7 @@ function coordinate(project:Project,id:string,request:Request={kind:'resume'}) {
         const output={schema:schemaPath,lastMessage:'',signal:attemptSignal,attempt,commands,onContextBoundary,
           thresholdPercent:plan.contextPolicy!.thresholdPercent,onSpawn(pid:number){plan.childPid=pid;save();}};
         try {
-          const code=await runAgent(root,logs,stage,input,writable,output);
+          const code=await runAgent(workingRoot,logs,stage,input,writable,output);
           lastMessage=output.lastMessage;
           return code;
         } finally {delete plan.childPid;}
@@ -362,13 +378,77 @@ function coordinate(project:Project,id:string,request:Request={kind:'resume'}) {
   async function execute() {
     let active:Ticket | undefined;
     const verification = plan.verification!;
+    let phaseId:PhaseId|undefined;
+    function phase(id:PhaseId,state:'running'|'done'|'awaiting_answers',summary?:string) {
+      if(!plan.workflow)return;
+      phaseId=id;setPhase(plan.workflow,id,state,summary);save();
+    }
+    async function fullPlanning() {
+      const workflow=plan.workflow!;
+      const done=(id:PhaseId)=>workflow.phases.find(p=>p.id===id)?.state==='done';
+      if(!done('prepare')) {
+        phase('prepare','running');
+        workspaceStatus(root);
+        const baselineHome=path.join(path.dirname(logs),'baselines');
+        mkdirSync(baselineHome,{recursive:true,mode:0o700});
+        const baseline=createBlindCopy(root,{parent:baselineHome,allowEmpty:true});
+        workflow.baseline={directory:path.basename(baseline.root),digest:baseline.record.digest,files:baseline.files};
+        phase('prepare','done','Рабочая копия и доступность агента проверены.');
+      }
+      if(!workflow.requirements) {
+        phase('requirements','running');
+        const value=await agent(id+'-requirements',[
+          'Ты аналитик требований. Прочитай исходную идею пользователя. Не меняй проект.',
+          'Верни полный список проверяемых требований с уникальными ID R-1, R-2. Сохрани ограничения, ошибки и граничные случаи. Не придумывай функции.',
+          plan.idea].join('\n\n'),requirementsSchema,false);
+        workflow.requirements=validateRequirements(value.requirements);
+        phase('requirements','done','Требований: '+workflow.requirements.length);
+      }
+      if(!done('brief')) {
+        phase('brief','running');
+        if(!plan.clarifications) {
+          const value=await agent(id+'-brief',[
+            'Ты проводишь брифинг. Изучи идею и требования, только для чтения.',
+            'Если осталась существенная неоднозначность результата, верни 1–3 вопроса с максимум тремя вариантами. Если запрос ясен, questions=[]. Задачи пока не составляй.',
+            plan.idea,JSON.stringify(workflow.requirements)].join('\n\n'),briefingSchema,false);
+          plan.clarifications=clarificationQuestions(value.questions);
+        }
+        if(plan.clarifications.some(q=>!q.answer)) {
+          phase('brief','awaiting_answers','G1: ожидаются ответы пользователя.');
+          plan.state='awaiting_answers';save();return false;
+        }
+        phase('brief','done','G1: исходная идея и все ответы зафиксированы.');
+      }
+      if(!done('spec')) {
+        phase('spec','running');
+        const spec=await agent(id+'-spec',[
+          'Ты проектируешь спецификацию. Верни summary с архитектурой, интерфейсами и способом проверки, а также полный перечень требований.',
+          'Сохрани ID всех исходных требований. Добавь проверяемые детали из ответов пользователя. Не меняй файлы.',
+          ideaBrief(plan),JSON.stringify(workflow.requirements)].join('\n\n'),specificationSchema,false);
+        const requirements=validateRequirements(spec.requirements);
+        if(workflow.requirements.some(r=>!requirements.some(x=>x.id===r.id)))throw new SessionFailure('G2: спецификация потеряла ID требования.');
+        const candidate={summary:cleanText(spec.summary,16000),requirements};
+        const audit=await agent(id+'-spec-review',[
+          'Ты независимый читатель спецификации. Сравни её с исходной идеей, ответами и исходными требованиями. Не меняй файлы.',
+          'passed=true допустим только если ни одно требование не потеряно, не ослаблено и ответы пользователя учтены. Иначе перечисли issues.',
+          ideaBrief(plan),JSON.stringify(workflow.requirements),JSON.stringify(candidate)].join('\n\n'),auditSchema,false);
+        if(typeof audit.passed!=='boolean'||!Array.isArray(audit.issues))throw new SessionFailure('Некорректный ответ читателя спецификации.');
+        workflow.specificationReview={passed:audit.passed,issues:audit.issues.map((x:unknown)=>cleanText(x))};
+        if(!audit.passed||audit.issues.length)throw new SessionFailure('G2: '+audit.issues.join('; '));
+        workflow.specification=candidate;
+        phase('spec','done','G2: независимый читатель подтвердил полноту спецификации.');
+      }
+      return true;
+    }
     try {
+      if(plan.workflow && !await fullPlanning())return 0;
       if (!plan.tasks.length) {
         const ruleDir = memoryDirectory(memory,'rules');
         const rules = readdirSync(ruleDir).filter(f=>f.endsWith('.json')).map(f=>{
           const {id,text} = JSON.parse(readMemoryFile(memoryFile(memory, 'rules', f.slice(0,-5))));return {id,text};
         });
-        const hasAnswers = Boolean(plan.clarifications?.length);
+        const hasAnswers = Boolean(plan.workflow || plan.clarifications?.length);
+        phase('plan','running');
         const instruction = hasAnswers
           ? 'Пользователь ответил на все уточнения. Составь план по исходной идее и ответам. Перенеси решения в задания и проверяемые критерии.'
           : 'Сначала реши, есть ли в идее существенная развилка, которую не разрешают запрос, правила и файлы проекта. Если от ответа зависит, кто пользуется продуктом, что он делает или какой результат нужен, верни только 1–3 коротких вопроса на языке пользователя и tasks=[]. Дай до трёх вариантов на вопрос, рекомендуемый первым, или пустой список для свободного ответа. Не задавай вопросы о мелочах реализации. Если цель и результат достаточно ясны, верни questions=[] и готовые задачи сразу.';
@@ -376,8 +456,8 @@ function coordinate(project:Project,id:string,request:Request={kind:'resume'}) {
           'Для маленького проекта обычно достаточно двух задач. Максимум 12. Укажи название, точное задание, относительные пути к коду, ID подходящих существующих правил и конкретные проверки.',
           'В acceptanceCommands перечисли известные конкретные команды обязательной приёмки. Они запускаются из корня готового проекта и должны завершиться с кодом 0. Для каждой команды используй отдельную строку без цепочек, перенаправлений, шаблонов или заполнителей. Для ожидаемой ошибки укажи тест, который сам проверяет её. Словесные критерии оставь в checks. Если конкретной команды пока нет — acceptanceCommands=[].',
           'Каждый исполнитель начнёт в новой сессии. Укажи общие интерфейсы и критерии успеха.',
-          instruction,'Правила проекта: '+JSON.stringify(rules),'Идея пользователя:',ideaBrief(plan)].join('\n\n');
-        const result = await agent(id+'-plan',prompt,hasAnswers ? planSchema : intakeSchema,false);
+          instruction, ...(plan.workflow ? ['Спецификация: '+JSON.stringify(plan.workflow.specification), 'G3: в requirementIds каждой задачи укажи ID требований спецификации. Каждое требование должно присутствовать хотя бы в одной задаче.'] : []),'Правила проекта: '+JSON.stringify(rules),'Идея пользователя:',ideaBrief(plan)].join('\n\n');
+        const result = await agent(id+'-plan',prompt,plan.workflow ? object({tasks:{type:'array',items:object({...taskArray.items.properties,requirementIds:strings})}}) : hasAnswers ? planSchema : intakeSchema,false);
         if (!hasAnswers) {
           const questions=clarificationQuestions(result.questions);
           if (questions.length) {
@@ -393,8 +473,10 @@ function coordinate(project:Project,id:string,request:Request={kind:'resume'}) {
         // If planning output is malformed, a retry starts a fresh planner.
         try {
           const tasks=tickets(result.tasks,id,plan.base===undefined?project.base:plan.base,new Set(rules.map(r=>r.id)),root);
+          if(plan.workflow)plan.workflow.coverage=requirementCoverage(plan.workflow.specification!.requirements,tasks);
           verification.requiredCommands=requiredCommands(tasks,projectTest(root));
           plan.tasks=tasks;
+          phase('plan','done','G3: все требования распределены по задачам.');
         } catch (err) {
           throw new SessionFailure((err as Error).message);
         }
@@ -405,6 +487,7 @@ function coordinate(project:Project,id:string,request:Request={kind:'resume'}) {
       verification.requiredCommands ??= requiredCommands(plan.tasks.filter(t=>t.id!==plan.repairId),projectTest(root));
       for (;;) {
         plan.state='building';
+        phase('build','running');
         save();
         for (const task of plan.tasks) {
           if (task.state==='done') continue;
@@ -420,17 +503,48 @@ function coordinate(project:Project,id:string,request:Request={kind:'resume'}) {
           active=undefined;
           save();
         }
+        phase('build','done','Задачи исполнителей завершены.');
+        phase('review','running');
         plan.state='verifying';
         // A new project may have gained its first test suite during building.
         verification.requiredCommands=[...new Set([...verification.requiredCommands,...projectTest(root)])];
         verification.state='running';
         save();
-        const verdict=await verifyProduct(plan,project,(prompt,commands)=>
+        let verdict=await verifyProduct(plan,project,(prompt,commands)=>
           agent(id+'-verify',prompt,reviewSchema,false,commands));
         verification.reports.push(verdict);
+        if(plan.workflow && verdict.status==='passed') {
+          phase('review','done','Код и обязательные команды проверены отдельным агентом.');
+          phase('accept','running');
+          const original=plan.workflow.baseline;
+          if(!original || !/^pilot-blind-[a-zA-Z0-9]{6}$/.test(original.directory))throw Error('G4: нет исходного снимка до начала работы агентов. Начни новую идею для проверки совместимости.');
+          const source=path.join(path.dirname(logs),'baselines',original.directory);
+          const baseline=createBlindCopy(source,{files:original.files,allowEmpty:true});
+          if(baseline.record.digest!==original.digest){baseline.cleanup();throw Error('G4: исходный снимок повреждён.');}
+          let copy;
+          try {copy=createBlindCopy(root);}catch(error){baseline.cleanup();throw error;}
+          plan.workflow.blindCopies.push(copy.record);save();
+          try {
+            await prepareBlindDependencies(copy.root,signal.signal);
+            await prepareBlindDependencies(baseline.root,signal.signal);
+            const blindProject={...project,root:copy.root};
+            verdict=await verifyProduct(plan,blindProject,(prompt,commands)=>
+              agent(id+'-blind',prompt,reviewSchema,false,commands,copy.root), true, baseline.root);
+            const latest=createBlindCopy(root);
+            let sourceMatches=false;
+            try {sourceMatches=latest.record.digest===copy.record.digest;} finally {latest.cleanup();}
+            if(!sourceMatches)verdict={status:'blocked',summary:'G4: исходная рабочая копия изменилась во время приёмки. Повтори проверку.',checks:[],commands:verdict.commands};
+            if(!copy.unchanged() || !baseline.unchanged())verdict={status:'blocked',summary:'G4: файлы копии изменились во время проверки.',checks:[],commands:verdict.commands};
+            copy.record.state=verdict.status;
+            verification.reports.push({...verdict,kind:'blind',copyId:copy.record.id});
+          } catch(error) {copy.record.state=signal.signal.aborted?'interrupted':'blocked';throw error;}
+          finally {copy.cleanup();baseline.cleanup();save();}
+          if(verdict.status==='passed')phase('accept','done','G4: слепая приёмка в отдельной копии пройдена.');
+        }
         if (verdict.status==='passed') {
           verification.state='done';plan.state='done';save();return 0;
         }
+        if(plan.workflow && phaseId){setPhase(plan.workflow,phaseId,'failed',verdict.summary);save();}
         if (verdict.status==='blocked' || plan.repairId) throw Error(verdict.summary);
         // Bound the repair loop. A fresh verifier reruns acceptance from the original brief.
         plan.repairId=id+'-repair';
@@ -450,6 +564,8 @@ function coordinate(project:Project,id:string,request:Request={kind:'resume'}) {
         (plan.pauses??=[]).push(ref);
       }
       const state=paused?'interrupted':'failed';
+      if(plan.workflow && phaseId)setPhase(plan.workflow,phaseId,state,(err as Error).message);
+      if(plan.workflow && !paused)plan.retryStage=currentStage ?? id+'-plan';
       if (active) active.state=state;
       if (plan.state==='verifying') verification.state=state;
       plan.state=state;

@@ -3,6 +3,7 @@ import {ArrowDownToLine, ArrowRight, CornerDownRight, Plus} from 'lucide-react';
 import {duration, labels, time, type Pipeline, type Snapshot, type Stage, type View} from '../../model';
 import {Changes, Journal, ReportContent, ShortText, stageName, TaskFacts, Transfer} from './stage-content';
 import {AgentContext, RouteContext} from './context-meter';
+import {WorkflowDetails} from './workflow-details';
 import {RunOverview} from './run-overview';
 
 function ClarificationPanel({flow, busy, onAnswered}: {
@@ -80,7 +81,8 @@ interface PipelineProps {
 }
 
 function stageStatus(flow:Pipeline,stage:Stage,view:View) {
-  const report=flow.reports?.at(-1);
+  const report=flow.reports?.filter(r=>stage.phase==='accept'?r.kind==='blind':stage.phase==='review'?r.kind!=='blind':true).at(-1);
+  if(stage.phase==='accept' && stage.state==='failed' && !report)return 'Приёмка не подтверждена';
   if (view==='result' && report && stage.state!=='active') {
     if (report.status==='passed') return 'Проверено · '+report.checks.filter(c=>c.passed).length+' из '+report.checks.length;
     if (report.status==='blocked') return 'Проверка заблокирована';
@@ -109,11 +111,11 @@ export function BuildPipeline({flow,flows,stage,snapshot,view,busy,online,onCrea
   const ready=snapshot.selected===stage.id;
   const drift=snapshot.pauseChanges && flow.stages.some(s=>s.id===snapshot.pauseChanges?.stage) ? snapshot.pauseChanges : null;
   const archived=ready ? snapshot.attempts ?? [] : [];
-  const verifier=flow.stages.find(s=>s.role==='verifier');
+  const verifier=flow.stages.filter(s=>s.role==='verifier').at(-1);
   const task=stage.role!=='verifier'?stage:flow.stages.find(s=>s.id===drift?.stage && s.role!=='verifier') ?? flow.stages.filter(s=>s.role==='agent').at(-1) ?? flow.stages[0];
   const transferTarget=stage.role==='verifier' && task ? task : stage;
   const liveEvent=stage.state==='active' ? stage.logs.filter(entry=>!entry.text.startsWith('{')).at(-1) : undefined;
-  const title=view==='result'?'Проверка результата':stage.role==='planner' && view==='task'?'План проекта':stageName(stage);
+  const title=view==='result'?'Проверка результата':stage.role==='planner' && !stage.phase && view==='task'?'План проекта':stageName(stage);
   async function control() {
     if(!flow.action || changing || !online)return;
     setChanging(true);setActionError('');
@@ -156,9 +158,10 @@ export function BuildPipeline({flow,flows,stage,snapshot,view,busy,online,onCrea
         {view!=='transfer' && <AgentContext stage={stage}/>}
         {liveEvent && view==='task' && <div className="live-event"><span>Сейчас · {time(liveEvent.time)}</span><ShortText value={liveEvent.text} limit={145}/></div>}
         {drift?.files.length ? <Changes drift={drift} flow={flow} stage={stage}/> : null}
-        {view==='result' ? <ReportContent flow={flow}/> : view==='transfer' ?
+        {stage.phase && view!=='transfer' && <WorkflowDetails flow={flow} stage={stage} onPick={onPick}/>}
+        {view==='result' ? <ReportContent flow={stage.phase==='review'?{...flow,reports:flow.reports?.filter(r=>r.kind!=='blind')}:stage.phase==='accept'?{...flow,reports:flow.reports?.filter(r=>r.kind==='blind')}:flow}/> : view==='transfer' ?
           <Transfer key={'transfer-'+stage.id} stage={stage} flow={flow} attempts={archived} packet={ready?snapshot.packet:''} notes={ready?snapshot.notes:[]} loading={!ready}/> :
-          <TaskFacts stage={stage} flow={flow} packet={ready?snapshot.packet:''}/>}
+          !stage.phase && <TaskFacts stage={stage} flow={flow} packet={ready?snapshot.packet:''}/>}
         {drift && !drift.files.length && <Changes drift={drift} flow={flow} stage={stage}/>}
         {view==='result' && archived.length>0 && <details className="disclosure"><summary>Задание проверяющего</summary>
           <Transfer stage={stage} flow={flow} attempts={archived} packet="" notes={[]} loading={false}/></details>}

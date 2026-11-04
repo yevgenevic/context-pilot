@@ -88,10 +88,11 @@ export function handoff(input:Handoff) {
   const ticketIndex=plan?.tasks.findIndex(t=>t.id===stage) ?? -1;
   const ticket=plan?.tasks[ticketIndex];
   const isVerifier=Boolean(plan && stage===plan.id+'-verify');
-  const title=ticket?.title || task?.text || (isVerifier?'Приёмка результата':'План проекта');
+  const phase=plan?.workflow?.phases.find(p=>stage===plan.id+'-'+(p.id==='review'?'verify':p.id==='accept'?'blind':p.id));
+  const title=phase?.name || ticket?.title || task?.text || (isVerifier?'Приёмка результата':'План проекта');
   const {branch,head,dirty}=workspace(root);
   const base=task ? task.base : plan?.base !== undefined ? plan.base : plan?.tasks[0]?.base;
-  const stageState=ticket?.state || (isVerifier?plan?.verification?.state:plan?.tasks.length?'done':plan?.state) || run?.state || 'pending';
+  const stageState=phase?.state || ticket?.state || (isVerifier?plan?.verification?.state:plan?.tasks.length?'done':plan?.state) || run?.state || 'pending';
   const state=plan?.state==='interrupted' && stageState==='running'?'interrupted':stageState;
   const rows=['# Передача задачи · '+title,'Проект '+path.basename(root)+' · этап '+stage+' · '+(states[state] || state),
     '**Следующий шаг.** '+nextStep(stage,state,plan),

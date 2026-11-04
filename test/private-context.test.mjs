@@ -89,7 +89,7 @@ else if(prompt.includes('Ты независимый проверяющий')){
 emit({type:'agent_message',text:JSON.stringify(reply)});
 `,{mode:0o755});
   const cli=new URL('../src/pilot.ts',import.meta.url).pathname;
-  const env={...process.env,PATH:bin+path.delimiter+process.env.PATH,PILOT_CODEX_TRANSPORT:'exec'};
+  const env={...process.env,PILOT_WORKFLOW:'classic',PATH:bin+path.delimiter+process.env.PATH,PILOT_CODEX_TRANSPORT:'exec'};
   const pilot=(...args)=>execFileSync(process.execPath,[cli,...args],{cwd:root,env,encoding:'utf8'});
   pilot('init');
   assert.ok(!pilot('idea','Read the sample').includes(secret));
