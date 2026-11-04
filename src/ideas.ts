@@ -142,7 +142,7 @@ const reviewSchema = object({
   fixtures: {type:'array',items:object({name:string,content:string})},
   checks: {type:'array',items:object({requirement:string,expected:string,actual:string,passed:{type:'boolean'}})}
 });
-function reviewerPrompt(plan: Idea, project: Project) {
+function reviewerPrompt(plan: Idea, project: Project, isolated=false) {
   const runs = activity(project.logs);
   const trace = plan.tasks.map((task,index) => {
     const inputs = packets(project.logs,task.id);
@@ -157,10 +157,10 @@ function reviewerPrompt(plan: Idea, project: Project) {
     };
   });
   return [
-    'Ты независимый проверяющий. Получаешь исходное требование и доступ к готовому проекту только для чтения.',
-    'Проверь каждое требование через нормальный вход в продукт. Сам запусти реальные команды и граничные сценарии. Не используй отчёты авторов для проверки поведения продукта. Для каждого сценария запиши наблюдаемый вывод. Не меняй файлы.',
+    'Ты независимый проверяющий. Получаешь исходное требование и '+(isolated?'отдельную временную копию готового проекта.':'доступ к готовому проекту только для чтения.'),
+    'Проверь каждое требование через нормальный вход в продукт. Сам запусти реальные команды и граничные сценарии. Не используй отчёты авторов для проверки поведения продукта. Для каждого сценария запиши наблюдаемый вывод. Не меняй исходники.',
     'Если для проверки обычного файла нет подходящих тестовых данных, верни status needs_files и fixtures — список до 6 входных текстовых файлов с простыми именами и точным содержимым. Координатор создаст их во временном каталоге вне проекта, затем ты запустишь продукт с их путями. Файлы могут быть пустыми или некорректными для негативных сценариев. Запрашивай только синтетические входные данные, не тестовые программы. Если файлы не нужны, верни fixtures=[].',
-    'Работаешь только для чтения. Не используй shell heredoc и команды, создающие временные файлы. Для синтетических входов используй needs_files, для коротких проверок — node -e. Недоступность среды означает blocked, а не дефект продукта.',
+    isolated?'Тестам разрешено создавать и удалять временные файлы в этой копии и системном временном каталоге. Исходники и существующие данные должны остаться неизменными; координатор проверит хеш. Для синтетических входов используй needs_files. Недоступность среды означает blocked.':'Работаешь только для чтения. Не используй shell heredoc и команды, создающие временные файлы. Для синтетических входов используй needs_files, для коротких проверок — node -e. Недоступность среды означает blocked, а не дефект продукта.',
     'По каждому требованию укажи ожидаемое и наблюдаемое. passed допустим только после фактической проверки всех требований. Расхождение — failed. Невозможность проверить — blocked.',
     'Обязательные команды приёмки перечислены ниже. Запусти каждую дословно отдельным вызовом в корне проекта. Не объединяй команды, не скрывай код выхода. Отрицательные сценарии проверяй тестом, который ожидает нужную ошибку и сам возвращает 0. Не подменяй упавшую команду альтернативой. При ненулевом коде обязательной команды верни failed. Если полноценный запуск недоступен, верни blocked.',
     'Для подтверждения каталога в старых версиях Codex можно добавить перед каждой командой точный префикс: '+rootPrefix(project.root),
@@ -191,18 +191,18 @@ function report(raw: Verdict, commands: CommandResult[], required:string[], root
   }
   return {status:raw.status,summary,checks:allChecks,commands};
 }
-// The coordinator writes input data; both review sessions retain the read-only sandbox.
-async function verifyProduct(plan: Idea, project: Project, run: (prompt:string, commands:CommandResult[]) => Promise<ReviewResponse>, blind=false,baselineRoot?:string): Promise<Report> {
+// Review copies permit temporary test output; their source tree is checked afterward.
+async function verifyProduct(plan: Idea, project: Project, run: (prompt:string, commands:CommandResult[]) => Promise<ReviewResponse>, blind=false,baselineRoot?:string,isolated=false): Promise<Report> {
   const required=plan.verification?.requiredCommands ?? [];
   const prompt = blind ? [
     'Ты проводишь слепую приёмку G4. Это отдельная копия готового проекта. Не меняй исходники.',
     'У тебя только исходная идея пользователя и ответы. Спецификация, план и отчёты исполнителей не переданы. Сам выбери сценарии по исходному брифу, запусти реальный продукт, проверь ошибки и границы. Не считай тесты автора достаточным доказательством.',
     'Для недостающих синтетических входных файлов верни needs_files и fixtures. Для каждого требования укажи ожидаемое и наблюдаемое. passed только после реальных команд. Любое расхождение — failed, невозможность проверить — blocked.',
-    'Не используй shell heredoc в режиме чтения. Для новых тестовых входов верни needs_files, для коротких проверок используй node -e. Сбой среды — blocked.',
+    'Тестам разрешено создавать и удалять временные файлы в этой копии и системном временном каталоге. Не меняй исходники и существующие данные: координатор сверит хеш после проверки. Для новых синтетических входов верни needs_files. Сбой среды — blocked.',
     'Также отдельно запусти обязательные команды без цепочек. Они должны завершиться с кодом 0. Для подтверждения корня можно использовать '+rootPrefix(project.root),
     ...(baselineRoot?['Исходные файлы пользователя, сохранённые ДО работы агентов, доступны только для чтения здесь: '+baselineRoot+'. Это исходная версия продукта без истории, инструкций и памяти авторов. Если требуется сохранить прежнее поведение, самостоятельно сравни обычный вход обеих версий на одинаковых данных. Проверяй обязательные команды в итоговой копии, не в исходной.']:[]),
     JSON.stringify(required),ideaBrief(plan)
-  ].join('\n\n') : reviewerPrompt(plan,project);
+  ].join('\n\n') : reviewerPrompt(plan,project,isolated);
   let commands:CommandResult[] = [];
   let raw = await run(prompt,commands);
   if (raw.status !== 'needs_files') return report(raw,commands,required,project.root);
@@ -340,11 +340,12 @@ function coordinate(project:Project,id:string,request:Request={kind:'resume'}) {
   async function agent(stage:string,prompt:string,schema:object,writable:boolean,commands?:CommandResult[],workingRoot=root) {
     currentStage=stage;
     assertRunning();
-    if (recovering?.stage===stage && !stage.endsWith('-blind')) {
+    const freshReview=stage.endsWith('-blind') || Boolean(plan.workflow && stage.endsWith('-verify'));
+    if (recovering?.stage===stage && !freshReview) {
       prompt=progressPacket(project,stage,prompt,recovering.reason);
       recovering=undefined;
     }
-    if (resuming?.stage===stage && !stage.endsWith('-blind')) {
+    if (resuming?.stage===stage && !freshReview) {
       prompt=prompt.trimEnd()+'\n\n'+describePause(resuming)+'\n';
       resuming=null;
     }
@@ -510,11 +511,24 @@ function coordinate(project:Project,id:string,request:Request={kind:'resume'}) {
         verification.requiredCommands=[...new Set([...verification.requiredCommands,...projectTest(root)])];
         verification.state='running';
         save();
-        let verdict=await verifyProduct(plan,project,(prompt,commands)=>
+        let verdict:Report;
+        if(plan.workflow) {
+          const reviewCopy=createBlindCopy(root);
+          try {
+            await prepareBlindDependencies(reviewCopy.root,signal.signal);
+            verdict=await verifyProduct(plan,{...project,root:reviewCopy.root},(prompt,commands)=>
+              agent(id+'-verify',prompt,reviewSchema,true,commands,reviewCopy.root),false,undefined,true);
+            const latest=createBlindCopy(root);
+            try {
+              if(latest.record.digest!==reviewCopy.record.digest || !reviewCopy.unchanged())
+                verdict={status:'blocked',summary:'Код-ревью: исходники или проверяемая копия изменились во время проверки.',checks:[],commands:verdict.commands};
+            } finally {latest.cleanup();}
+          } finally {reviewCopy.cleanup();}
+        } else verdict=await verifyProduct(plan,project,(prompt,commands)=>
           agent(id+'-verify',prompt,reviewSchema,false,commands));
         verification.reports.push(verdict);
         if(plan.workflow && verdict.status==='passed') {
-          phase('review','done','Код и обязательные команды проверены отдельным агентом.');
+          phase('review','done','Код и обязательные команды проверены отдельным агентом в новой копии.');
           phase('accept','running');
           const original=plan.workflow.baseline;
           if(!original || !/^pilot-blind-[a-zA-Z0-9]{6}$/.test(original.directory))throw Error('G4: нет исходного снимка до начала работы агентов. Начни новую идею для проверки совместимости.');
@@ -529,7 +543,7 @@ function coordinate(project:Project,id:string,request:Request={kind:'resume'}) {
             await prepareBlindDependencies(baseline.root,signal.signal);
             const blindProject={...project,root:copy.root};
             verdict=await verifyProduct(plan,blindProject,(prompt,commands)=>
-              agent(id+'-blind',prompt,reviewSchema,false,commands,copy.root), true, baseline.root);
+              agent(id+'-blind',prompt,reviewSchema,true,commands,copy.root), true, baseline.root);
             const latest=createBlindCopy(root);
             let sourceMatches=false;
             try {sourceMatches=latest.record.digest===copy.record.digest;} finally {latest.cleanup();}

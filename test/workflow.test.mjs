@@ -9,10 +9,11 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {toolDirectory} from './support/tool-directory.mjs';
 import {createBlindCopy,prepareBlindDependencies} from '../src/blind-copy.ts';
-import {requirementCoverage} from '../src/workflow.ts';
+import {requirementCoverage,newWorkflow,setPhase} from '../src/workflow.ts';
 const cli=fileURLToPath(new URL('../src/pilot.ts',import.meta.url));
 
-for(const failure of ['repair','G2','G3','evidence','pause','source-drift','copy-write','baseline-write'])test('eight stages and acceptance gate '+failure,async t=>{
+for(const failure of ['repair','G2','G3','evidence','pause','source-drift','copy-write','baseline-write','review-copy-write','review-source-drift','temporary-output'])test('eight stages and acceptance gate '+failure,async t=>{
+  const success=failure==='repair'||failure==='temporary-output';
   const root=mkdtempSync(path.join(tmpdir(),'pilot-eight-'));
   t.after(()=>rmSync(root,{recursive:true,force:true}));
   const bin=toolDirectory(t), audit=path.join(bin,'audit');
@@ -28,7 +29,8 @@ if(process.argv[2]==='login'){console.error('Logged in using ChatGPT');process.e
 let p='';process.stdin.on('data',c=>p+=c).on('end',()=>{
  const req=[{id:'R-1',text:'Print 42'}];let r;const mode=process.env.PILOT_EIGHT_FAILURE;
  const event=item=>console.log(JSON.stringify({type:'item.completed',item}));
- fs.appendFileSync(process.env.PILOT_EIGHT_AUDIT,JSON.stringify({cwd:process.cwd(),p})+'\\n');
+ fs.appendFileSync(process.env.PILOT_EIGHT_AUDIT,JSON.stringify({cwd:process.cwd(),args:process.argv,p})+'\\n');
+ if(mode==='temporary-output' && (p.includes('Ты проводишь слепую')||p.includes('Ты независимый проверяющий'))){fs.writeFileSync('.test-output','temporary');fs.unlinkSync('.test-output');}
  if(p.includes('Ты аналитик требований'))r={requirements:req};
  else if(p.includes('Ты проводишь брифинг'))r={questions:[]};
  else if(p.includes('Ты проектируешь спецификацию'))r={summary:'CLI app.js prints 42',requirements:req};
@@ -45,6 +47,9 @@ let p='';process.stdin.on('data',c=>p+=c).on('end',()=>{
   if(mode!=='evidence')event({type:'command_execution',command:'node app.js',exit_code:0,aggregated_output:actual});
   r={status:actual==='42'?'passed':'failed',summary:actual==='42'?'OK':'Wrong stdout',checks:[{requirement:'Print 42',expected:'42',actual,passed:actual==='42'}],fixtures:[]};
  }else if(p.includes('Ты независимый проверяющий')){
+  if(process.cwd()===process.env.PILOT_EIGHT_SOURCE)throw Error('review must use a separate copy');
+  if(mode==='review-copy-write')fs.writeFileSync('app.js','console.log(42)');
+  if(mode==='review-source-drift')fs.writeFileSync(require('path').join(process.env.PILOT_EIGHT_SOURCE,'app.js'),'console.log(42)');
   event({type:'command_execution',command:'node app.js',exit_code:0,aggregated_output:'41'});
   r={status:'passed',summary:'Code reviewed',checks:[{requirement:'code',expected:'exists',actual:'exists',passed:true}],fixtures:[]};
  }else {if(p.includes('Wrong stdout'))fs.writeFileSync('app.js','console.log(42)');r={status:'done',summary:'AUTHOR_ONLY_SECRET'};}
@@ -72,11 +77,11 @@ let p='';process.stdin.on('data',c=>p+=c).on('end',()=>{
     assert.equal(done.state,'done');assert.ok(done.workflow.blindCopies.length>=2);
     return;
   }
-  if(failure==='repair')run();else assert.throws(run);
+  if(success)run();else assert.throws(run);
   const plan=JSON.parse(readFileSync(path.join(root,'.pilot/ideas',readdirSync(path.join(root,'.pilot/ideas'))[0])));
-  if(failure!=='repair') {
+  if(!success) {
     assert.equal(plan.state,'failed');
-    const point=failure==='G2'?'spec':failure==='G3'?'plan':'accept';
+    const point=failure==='G2'?'spec':failure==='G3'?'plan':failure.startsWith('review-')?'review':'accept';
     assert.equal(plan.workflow.phases.find(p=>p.id===point).state,'failed');
     if(failure==='G2'||failure==='G3')assert.ok(plan.tasks.every(t=>t.state==='pending'));
     else assert.equal(plan.verification.reports.at(-1).status,'blocked');
@@ -97,6 +102,9 @@ let p='';process.stdin.on('data',c=>p+=c).on('end',()=>{
   const attempts=readFileSync(audit,'utf8').trim().split('\n').map(x=>JSON.parse(x));
   const blind=attempts.filter(x=>x.p.includes('Ты проводишь слепую'));
   assert.equal(blind.length,2);
+  const reviews=attempts.filter(x=>x.p.includes('Ты независимый проверяющий'));
+  assert.ok(reviews.every(x=>x.cwd!==root && !existsSync(x.cwd)));
+  assert.ok([...blind,...reviews].every(x=>x.args.includes('workspace-write')));
   assert.notEqual(blind[0].cwd,root);assert.notEqual(blind[0].cwd,blind[1].cwd);
   assert.ok(blind.every(x=>!existsSync(x.cwd)));
   assert.match(readFileSync(path.join(root,'app.js'),'utf8'),/42/);
@@ -153,4 +161,13 @@ test('new projects can preserve an empty baseline without accepting an empty res
   const restored=createBlindCopy(copy.root,{files:copy.files,allowEmpty:true});t.after(restored.cleanup);
   assert.equal(restored.record.digest,copy.record.digest);
   assert.throws(()=>createBlindCopy(root),/нет файлов/);
+});
+
+
+test('retry clears the previous phase failure from its live status',()=>{
+  const workflow=newWorkflow();
+  setPhase(workflow,'review','failed','previous failure');
+  setPhase(workflow,'review','running');
+  const phase=workflow.phases.find(p=>p.id==='review');
+  assert.equal(phase.summary,undefined);assert.equal(phase.ended,undefined);
 });

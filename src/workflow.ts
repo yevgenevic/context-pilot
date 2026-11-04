@@ -21,7 +21,7 @@ export function newWorkflow():Workflow {
 export function setPhase(workflow:Workflow,id:PhaseId,state:Phase['state'],summary?:string) {
   const phase=workflow.phases.find(p=>p.id===id)!;
   phase.state=state;
-  if(state==='running'){phase.started=new Date().toISOString();delete phase.ended;}
+  if(state==='running'){phase.started=new Date().toISOString();delete phase.ended;delete phase.summary;}
   if(state==='done'||state==='failed'||state==='interrupted')phase.ended=new Date().toISOString();
   if(summary!==undefined)phase.summary=summary;
 }
