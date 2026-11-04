@@ -7,7 +7,7 @@ Context Pilot помогает продолжить работу в новой �
 Понадобятся Git и Node.js 22.18 или новее с npm.
 
 ```sh
-npm install -g https://github.com/yevgenevic/context-pilot/releases/download/v0.1.2/context-pilot-0.1.2.tgz
+npm install -g https://github.com/yevgenevic/context-pilot/releases/download/v0.1.3/context-pilot-0.1.3.tgz
 ```
 
 В папке своего Git-проекта выполните
