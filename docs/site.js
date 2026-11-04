@@ -45,3 +45,14 @@
     observer.observe(h);
   }
 })();
+
+// Keep all three comments available without placing another screen of text
+// between the phone preview and its gallery.
+(() => {
+  const notesButton = document.querySelector('.cp-team-toggle');
+  notesButton.hidden = false;
+  notesButton.addEventListener('click', () => {
+    const wasOpen = notesButton.getAttribute('aria-expanded') === 'true';
+    notesButton.setAttribute('aria-expanded', String(!wasOpen));
+  });
+})();

@@ -5,6 +5,59 @@
   const wide = window.matchMedia('(min-width: 1280px)');
   const readingTimes = [9000, 9500, 8000, 10000, 8500, 8000];
 
+  const phone = window.matchMedia('(max-width: 700px)');
+
+  // Use the same measured snap positions for arrow navigation and the native swipe.
+  function snapPosition(rail, item) {
+    const first = rail.firstElementChild;
+    return Math.min(item.offsetLeft - first.offsetLeft, rail.scrollWidth - rail.clientWidth);
+  }
+
+  function addRailControls(rail, parent, extraClass = '') {
+    const controls = document.createElement('div');
+    controls.className = ('cp-reader-controls ' + extraClass).trim();
+    const arrows = [-1, 1].map(direction => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = direction < 0 ? '‹' : '›';
+      button.setAttribute('aria-label', direction < 0 ? 'Предыдущий экран' : 'Следующий экран');
+      button.addEventListener('click', () => {
+        const stops = [...rail.children].map(item => snapPosition(rail, item));
+        const stop = direction > 0 ? stops.find(x => x > rail.scrollLeft + 3)
+          : stops.reverse().find(x => x < rail.scrollLeft - 3);
+        if (stop !== undefined) rail.scrollTo({left: stop, behavior: reducedMotion.matches ? 'instant' : 'smooth'});
+      });
+      controls.append(button);
+      return button;
+    });
+    parent.append(controls);
+    function updateArrows() {
+      arrows[0].disabled = rail.scrollLeft <= 2;
+      arrows[1].disabled = rail.scrollWidth - rail.clientWidth - rail.scrollLeft <= 2;
+    }
+    rail.addEventListener('scroll', updateArrows, {passive: true});
+    new ResizeObserver(updateArrows).observe(rail);
+    updateArrows();
+    return updateArrows;
+  }
+
+  const values = document.querySelector('.cp-values .cp-triptych');
+  if (values) {
+    addRailControls(values, values.parentElement, 'cp-phone-controls');
+    const cards = Array.from(values.children);
+    const visibility = new IntersectionObserver(entries => {
+      if (!phone.matches) return;
+      for (const entry of entries) {
+        if (entry.intersectionRatio >= .72) {
+          cards.forEach(card => card.classList.toggle('cp-card-active', card === entry.target));
+        }
+      }
+    }, {root: values, threshold: .72});
+    cards.forEach(card => visibility.observe(card));
+  }
+  const benefits = document.querySelector('.cp-benefits');
+  if (benefits) addRailControls(benefits, benefits.parentElement, 'cp-phone-controls cp-benefit-controls');
+
   for (const group of document.querySelectorAll('[data-cp-tabs]')) {
     const tabs = Array.from(group.querySelectorAll('[role="tab"]'));
     const panels = tabs.map(tab => document.getElementById(tab.getAttribute('aria-controls')));
@@ -24,31 +77,9 @@
     rail.tabIndex = 0;
     rail.setAttribute('role', 'region');
     rail.setAttribute('aria-label', isRun ? 'Ещё три этапа запуска' : 'Ещё три вида памяти');
-    const controls = document.createElement('div');
-    controls.className = 'cp-reader-controls';
-    const arrows = [-1, 1].map(direction => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.textContent = direction < 0 ? '←' : '→';
-      button.setAttribute('aria-label', direction < 0 ? 'Предыдущий экран' : 'Следующий экран');
-      button.addEventListener('click', () => {
-        const stops = [...rail.children].map(item => item.offsetLeft - rail.firstElementChild.offsetLeft);
-        const next = direction > 0 ? stops.find(stop => stop > rail.scrollLeft + 3)
-          : stops.reverse().find(stop => stop < rail.scrollLeft - 3);
-        rail.scrollTo({left: next ?? (direction > 0 ? rail.scrollWidth : 0),
-          behavior: reducedMotion.matches ? 'instant' : 'smooth'});
-      });
-      controls.append(button);
-      return button;
-    });
-    reader.append(rail, controls);
+    reader.append(rail);
+    const updateArrows = addRailControls(rail, reader);
     group.append(reader);
-    function updateArrows() {
-      arrows[0].disabled = rail.scrollLeft <= 2;
-      arrows[1].disabled = rail.scrollWidth - rail.clientWidth - rail.scrollLeft <= 2;
-    }
-    rail.addEventListener('scroll', updateArrows, {passive: true});
-    new ResizeObserver(updateArrows).observe(rail);
 
     tabs.forEach((tab, index) => {
       const label = document.createElement('div');
@@ -165,6 +196,30 @@
     }, {rootMargin: '0px 0px -12% 0px'});
     observer.observe(group);
   }
+  // Animate the illustration, not the slide that defines the native snap point.
+  const phoneMotion=matchMedia('(max-width: 700px) and (prefers-reduced-motion: no-preference)');
+  function bindFilmstripMotion() {
+    const observers=[];
+    if (phoneMotion.matches) {
+      for (const rail of document.querySelectorAll('.cp-reader-rail, .cp-story-strip')) {
+        const observer=new IntersectionObserver(entries => {
+          for (const entry of entries) {
+            const visible=entry.intersectionRatio;
+            entry.target.style.setProperty('--phone-scale', String(.85 + .15*visible));
+            entry.target.style.setProperty('--phone-inset', ((1-visible)*7.5)+'%');
+          }
+        }, {root:rail, threshold:Array.from({length:11}, (_,i)=>i/10)});
+        [...rail.children].forEach(slide=>observer.observe(slide));
+        observers.push(observer);
+      }
+    }
+    phoneMotion.addEventListener('change', () => {
+      observers.forEach(observer=>observer.disconnect());
+      bindFilmstripMotion();
+    }, {once:true});
+  }
+  bindFilmstripMotion();
+
   // Recover a visible frame immediately on deep links or reduced-motion devices.
   // Only a graphic that actually enters the viewport gets an entrance motion.
   const stages = new IntersectionObserver(entries => {
@@ -186,11 +241,44 @@
   if (story) {
     const moments = Array.from(story.querySelectorAll('[data-cp-moment]'));
     const chapters = Array.from(story.querySelectorAll('[data-cp-story]'));
-    moments.forEach((moment,i)=>moment.addEventListener('click',()=>{
-      moments.forEach((b,j)=>b.setAttribute('aria-pressed',String(i===j)));
-      chapters.forEach((chapter,j)=>{chapter.hidden=i!==j});
-      story.dataset.storyColor=String(i);
+    const strip = story.querySelector('.cp-story-strip');
+    const frames = Array.from(strip.children);
+    function showMoment(index) {
+      if (index === Number(story.dataset.storyColor)) return;
+      moments.forEach((button,i) => button.setAttribute('aria-pressed',String(index===i)));
+      chapters.forEach((chapter,i) => {chapter.hidden=index!==i;});
+      story.dataset.storyColor=String(index);
+    }
+    function scrollToMoment(index, smooth) {
+      strip.scrollTo({
+        left:snapPosition(strip,frames[index]),
+        behavior:smooth && !reducedMotion.matches ? 'smooth' : 'instant'
+      });
+    }
+    moments.forEach((button,index) => button.addEventListener('click', () => {
+      showMoment(index);
+      if (phone.matches) scrollToMoment(index, true);
     }));
+    let settle;
+    strip.addEventListener('scroll', () => {
+      clearTimeout(settle);
+      settle=setTimeout(() => {
+        if (!phone.matches) return;
+        const distances=frames.map(frame => Math.abs(snapPosition(strip,frame)-strip.scrollLeft));
+        showMoment(distances.indexOf(Math.min(...distances)));
+      },100);
+    },{passive:true});
+    phone.addEventListener('change', () => {
+      if (phone.matches) scrollToMoment(Number(story.dataset.storyColor), false);
+    });
+  }
+  // On phones the chapter action follows the examples, before the next full-width section.
+  for (const intro of document.querySelectorAll('#case .cp-titleblock, #memory .cp-titleblock')) {
+    const link=intro.querySelector('a.cp-plainlink');
+    if (!link) continue;
+    const placeLink=() => (phone.matches ? intro.parentElement : intro).append(link);
+    phone.addEventListener('change',placeLink);
+    placeLink();
   }
   const copy=document.getElementById('copy'), command=document.getElementById('commands'), status=document.getElementById('cp-copy-status');
   if(copy&&command&&status) copy.addEventListener('click',async()=>{

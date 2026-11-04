@@ -17,12 +17,12 @@
   <link rel="canonical" href="https://yevgenevic.me/context-pilot/">
   <link rel="icon" href="pilot-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="site.css?v=fe9c8b06be">
-  <link rel="stylesheet" href="hero.css?v=cfe22fec52">
-  <link rel="stylesheet" href="chapters.css?v=86e0dab8f8">
-  <link rel="stylesheet" href="editorial.css?v=1a10f34972">
-  <script src="site.js?v=d27992a246" defer></script>
+  <link rel="stylesheet" href="hero.css?v=0ebe1d46a5">
+  <link rel="stylesheet" href="chapters.css?v=240d3bdf85">
+  <link rel="stylesheet" href="editorial.css?v=cd8313a6a4">
+  <script src="site.js?v=474b33eec7" defer></script>
   <script src="hero.js?v=bc276c3621" defer></script>
-  <script src="chapters.js?v=75757de2e9" defer></script>
+  <script src="chapters.js?v=83fdd3adef" defer></script>
 </head>
 <body id="top">
 <a class="cp-skip" href="#product">Перейти к описанию продукта</a>
@@ -59,7 +59,7 @@
         <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3.5 13.5h12c-2-2-2.4-3.2-2.4-5.2A4.1 4.1 0 0 0 9 4.2a4.1 4.1 0 0 0-4.1 4.1c0 2.1-.3 3.2-1.4 5.2ZM7.6 15.5a1.8 1.8 0 0 0 3.4 0" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.3"/><circle cx="15" cy="4" r="2.7" fill="#e8a3a5"/></svg>
         <span>Context Pilot 0.1.3 уже доступен</span><span aria-hidden="true">→</span>
       </a>
-      <h1 id="pilot-hero-title">Новый чат.<br>Тот же проект.</h1>
+      <h1 id="pilot-hero-title" aria-label="Новый чат. Тот же проект."><span aria-hidden="true">Новый</span> <span aria-hidden="true">чат.</span><br><span aria-hidden="true">Тот</span> <span aria-hidden="true">же</span> <span aria-hidden="true">проект.</span></h1>
       <p>Context Pilot передаёт следующему ИИ‑агенту задачу, файлы и решения, чтобы вы могли продолжить с места остановки.</p>
       <div class="pilot-hero-actions"><a class="pilot-hero-primary" href="#start">Установить CLI</a><a href="#case">Как это работает</a></div>
     </div>
@@ -231,7 +231,7 @@
 </section>
 <section class="cp-chapter cp-values" id="product">
   <div class="cp-wrap">
-    <h2>Память для работы<br>между чатами</h2>
+    <h2>Память проекта<br>между чатами</h2>
     <div class="cp-triptych">
       <article class="cp-card-active" tabindex="0">
         <h3>План и задачи</h3>
@@ -375,6 +375,35 @@
 <section class="cp-chapter cp-story" id="story" data-story-color="0">
   <div class="cp-wrap cp-story-grid">
     <div class="cp-story-copy"><span class="cp-chapter-kicker">Реальный запуск <span aria-hidden="true">›</span></span>
+      <div class="cp-story-strip" tabindex="0" role="region" aria-label="Четыре момента реального запуска">
+        <figure class="cp-story-frame">
+          <img src="handoff-story.webp" width="640" height="640" loading="lazy" decoding="async" alt="Две дискеты передают работу из одной сессии в другую">
+        </figure>
+        <figure class="cp-story-frame cp-paper-photo" aria-label="Второму агенту переданы два файла">
+          <div class="cp-proof-paper" aria-hidden="true">
+            <small>ПЕРЕДАЧА · 02</small>
+            <b>Рабочая копия</b>
+            <code>work-time.js</code>
+            <code>work-time.test.js</code>
+          </div>
+        </figure>
+        <figure class="cp-story-frame cp-error-photo" aria-label="Проверка получила 96 минут вместо ожидаемых 95">
+          <div class="cp-proof-paper" aria-hidden="true">
+            <small>ПРОВЕРКА · 03</small>
+            <b>96 <em>мин</em></b>
+            <span>Ожидалось 95 минут</span>
+            <code>npm test · exit 1</code>
+          </div>
+        </figure>
+        <figure class="cp-story-frame cp-pass-photo" aria-label="Повторная проверка подтвердила девять критериев">
+          <div class="cp-proof-paper" aria-hidden="true">
+            <small>ПРИЁМКА · 04</small>
+            <b>9 <em>из</em> 9</b>
+            <span>Критерии выполнены</span>
+            <code>npm test · exit 0</code>
+          </div>
+        </figure>
+      </div>
       <div class="cp-story-body" aria-live="polite">
         <div class="cp-story-item" data-cp-story="0">
           <h2>Агент остановился.<br>Два файла остались.</h2>
@@ -526,7 +555,8 @@
           </div>
         </div>
       </div>
-      <div class="cp-questions" aria-label="Содержимое передачи">
+      <button type="button" class="cp-team-toggle" aria-expanded="false" aria-controls="cp-session-notes" hidden>Комментарии к передаче <span>3</span></button>
+      <div class="cp-questions" id="cp-session-notes" aria-label="Содержимое передачи">
         <details class="cp-q cp-q1" open>
           <summary aria-label="Комментарий исполнителя первой сессии"><i><svg class="cp-i" aria-hidden="true"><use href="#cp-i-activity"/></svg></i><span>Исполнитель <small>Сессия 1</small></span><b aria-hidden="true">+</b>
           </summary>
@@ -607,7 +637,7 @@
 </main>
 <footer class="cp-footer">
 <div class="cp-wrap">
-  <div class="cp-footer-grid"><a class="cp-footer-mark" href="#top" aria-label="Context Pilot — наверх"><img src="pilot-mark.svg" alt="" width="38" height="38"></a>
+  <div class="cp-footer-grid"><a class="cp-footer-mark" href="#top" aria-label="Context Pilot — наверх"><img src="pilot-mark.svg" alt="" width="38" height="38"><span aria-hidden="true">Context Pilot</span></a>
     <div>
       <h3>Обзор</h3><a href="#product">Продукт</a><a href="#case">Запуск задачи</a><a href="#story">История запуска</a><a href="#memory">Память проекта</a><a href="#handoff">Передача</a><a href="#start">Начало работы</a>
     </div>
