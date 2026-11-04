@@ -1,5 +1,5 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7f6f6"><title>Context Pilot — память проекта для ИИ</title><meta name="description" content="Передайте новому ИИ-агенту задачу, решения и проверки из Git для продолжения работы."><link rel="stylesheet" href="site.css"><script src="site.js" defer></script></head>
-<body id="top"><header><a class="brand" href="#top" aria-label="Context Pilot, наверх"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13a8.8 8.8 0 1 0-16.6 3l6.2-6.1 2.7 8.1 2.3-5.5 5.4.5Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="2.5"/></svg>Context Pilot</a><nav aria-label="Основное меню"><a href="#product">Продукт</a><a href="#case">Как работает</a></nav><div class="nav-right"><a class="pill" href="#start">Установить CLI</a></div></header>
+<body id="top"><header><a class="brand" href="#top" aria-label="Context Pilot, наверх"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13a8.8 8.8 0 1 0-16.6 3l6.2-6.1 2.7 8.1 2.3-5.5 5.4.5Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="2.5"/></svg>Context Pilot</a><nav aria-label="Основное меню"><a href="#product">Продукт</a><a href="#case">Как работает</a><a href="#memory">Память проекта</a></nav><div class="nav-right"><a class="pill" href="#start">Установить CLI</a></div></header>
 <main><section class="film" aria-label="Передача задачи в новый чат"><div class="frame">
 <div class="headline">
 <h1>Новый чат.<br>Тот же проект.</h1><p>Каждый агент получает свою задачу, решения проекта<br class="desktop"> и результаты предыдущей сессии.</p><div class="actions"><a class="pill" href="#start">Начать работу</a><a href="#case">Как это работает</a></div></div>
@@ -14,16 +14,67 @@
 <article><h3>Рабочая копия</h3><div class="mini branch" aria-hidden="true"><svg viewBox="0 0 230 85"><path d="M10 60h210M53 60c26 0 20-36 47-36h23c29 0 26 36 55 36" fill="none" stroke="currentColor" stroke-width="2"/><g fill="#fbe1d1" stroke="currentColor" stroke-width="2"><circle cx="53" cy="60" r="6"/><circle cx="108" cy="24" r="6"/><circle cx="178" cy="60" r="6"/></g></svg></div><p>Агент видит, какие файлы открыть и что успело измениться в Git с момента постановки задачи.</p></article>
 <article><h3>Новый чат</h3><div class="mini hand" aria-hidden="true"><i>контекст.md</i><b>↳</b><i>Новая сессия</i></div><p>Во вкладке «Передача» можно прочитать задание следующего агента и скачать его для напарника.</p></article></div></section>
 
-<section id="case" class="showcase"><div class="intro"><h2>Как вести проект</h2><p>Откройте дашборд в папке своего Git-проекта.</p></div>
-<div class="tabs" aria-label="Этапы работы"><button aria-pressed="true" data-tab="0">Начать</button><button aria-pressed="false" data-tab="1">Продолжить</button><button aria-pressed="false" data-tab="2">Проверить</button></div>
+<section id="case" class="showcase"><div class="intro"><h2>Как вести проект</h2><p>От первой идеи до проверки готового кода. Все этапы видны в локальном дашборде.</p></div>
+<div class="tabs" role="group" aria-label="Этапы работы"><button aria-pressed="true" aria-controls="case-start" data-tab="0">Начать</button><button aria-pressed="false" aria-controls="case-resume" data-tab="1">Продолжить</button><button aria-pressed="false" aria-controls="case-review" data-tab="2">Проверить</button></div>
 <div class="stage"><div class="terminal">
-<div class="case-panel"><h3>Поставьте задачу</h3><pre><em>$</em> pilot init
-<em>$</em> pilot dashboard</pre><p>Откройте адрес из терминала и нажмите «Новая идея». Планировщик уточнит детали, если они нужны, и передаст задачи исполнителям.</p></div>
-<div class="case-panel" hidden><h3>Продолжите с места остановки</h3><p>Выберите прерванный этап. После ошибки нажмите «Повторить этап с ошибкой». Во вкладке «Передача» появится задание новой сессии с исходной целью, изменёнными файлами и последними действиями.</p></div>
-<div class="case-panel" hidden><h3>Посмотрите результат проверки</h3><p>Откройте «Результат» и раскройте отчёт приёмки. Для каждой выполненной команды доступны вывод и код завершения. Если обязательный тест упал, Pilot отправит задачу на исправление.</p></div>
+<div class="case-panel" id="case-start">
+  <div><h3>Поставьте задачу</h3><p>В папке проекта выполните две команды и откройте адрес из терминала. Нажмите «Новая идея» и опишите, что хотите получить. Если для плана не хватает деталей, Pilot задаст вопросы здесь же.</p></div>
+  <div class="case-inset"><b>В терминале</b><pre><em>$</em> pilot init
+<em>$</em> pilot dashboard</pre></div>
+</div>
+<div class="case-panel" id="case-resume" hidden>
+  <div><h3>Продолжите с места остановки</h3><p>После сбоя выберите этап с ошибкой и нажмите «Повторить этап с ошибкой». Новый агент получит изменения в рабочей копии и последние действия предшественника.</p></div>
+  <div class="case-inset"><b>В разделе «Передача»</b><p>Выберите новую попытку, чтобы прочитать точное задание, с которым агент продолжил работу.</p></div>
+</div>
+<div class="case-panel" id="case-review" hidden>
+  <div><h3>Проверьте результат</h3><p>Отдельный агент проверяет работу по исходной задаче. Если обязательный тест упал, Pilot покажет «Нужны исправления» и передаст расхождение исполнителю.</p></div>
+  <div class="case-inset"><b>В разделе «Результат»</b><p>Раскройте отчёт приёмки и выберите «Команды и фактический вывод», чтобы увидеть, что вернул тест.</p></div>
+</div>
 </div></div></section>
 
-<section class="spread" aria-labelledby="spread-title"><div><h2 id="spread-title">Как передать задачу напарнику</h2><p>На дашборде выберите этап и нажмите «Скачать для напарника». Передайте файл Markdown вместе с соответствующей версией кода.</p></div><img src="archive.svg" alt=""></section>
+<section class="spread" aria-labelledby="spread-title"><div><h2 id="spread-title">Чат можно закрыть.<br>Решение останется.</h2><p>Сохраните в проекте, о чём вы договорились и почему. Следующий агент получит это решение вместе с задачей.</p><a class="spread-link" href="#memory">Где хранится память <span aria-hidden="true">→</span></a></div><img src="archive.svg" alt=""></section>
+
+<section id="memory" class="project-memory" aria-labelledby="memory-title">
+  <div class="intro"><p class="section-label">Память проекта</p>
+    <h2 id="memory-title">Обычная папка в Git</h2>
+    <p>Откройте папку <code>.pilot</code> в своём редакторе. Здесь лежат решения команды и задачи, для которых они нужны.</p>
+  </div>
+  <div class="memory-window">
+    <div class="memory-tree" role="group" aria-label="Папки проекта">
+      <div class="tree-root"><span class="folder-icon" aria-hidden="true"></span><code>.pilot</code></div>
+      <button type="button" aria-pressed="true" aria-controls="memory-rules" data-folder><span class="folder-icon" aria-hidden="true"></span><code>rules/</code></button>
+      <button type="button" aria-pressed="false" aria-controls="memory-tasks" data-folder><span class="folder-icon" aria-hidden="true"></span><code>tasks/</code></button>
+    </div>
+    <div class="memory-pane" id="memory-rules">
+      <div class="memory-path"><code>.pilot / rules /</code><span>JSON</span></div>
+      <h3>Решение команды</h3><p>Запишите договорённость один раз. Когда вы свяжете её с задачей, Pilot включит решение в задание агента.</p>
+      <dl><div><dt><code>text</code></dt><dd>Что решили и почему.</dd></div><div><dt><code>files</code></dt><dd>К каким файлам относится решение.</dd></div></dl>
+    </div>
+    <div class="memory-pane" id="memory-tasks" hidden>
+      <div class="memory-path"><code>.pilot / tasks /</code><span>JSON</span></div>
+      <h3>Задание для агента</h3><p>Опишите результат, привяжите нужные решения и укажите, как проверить работу.</p>
+      <dl><div><dt><code>rules</code></dt><dd>Какие решения применить.</dd></div><div><dt><code>checks</code></dt><dd>Что проверить перед завершением.</dd></div></dl>
+    </div>
+  </div>
+  <div class="memory-notes"><div><h3>В редакторе</h3><p>Для правки достаточно открыть JSON-файл.</p></div><div><h3>В истории Git</h3><p>Добавьте изменения в коммит, чтобы сохранить версию решения.</p></div><div><h3>На ревью</h3><p>Обсудите правку правила вместе с изменениями в коде.</p></div><div><h3>У напарника</h3><p>После клонирования проекта напарник увидит сохранённые в Git договорённости.</p></div></div>
+</section>
+
+<section id="handoff" class="next-session" aria-labelledby="handoff-title">
+  <div class="intro"><p class="section-label">Передача работы</p><h2 id="handoff-title">С чего начнёт агент?</h2>
+    <p>На вкладке «Передача» можно прочитать задание, с которым открылась новая сессия.</p>
+  </div>
+  <div class="handoff-questions">
+    <details open><summary>Что уже решили?</summary><p>Агент получает цель задачи и связанные с ней правила. Если при планировании были уточнения, в задании будут и ваши ответы.</p></details>
+    <details><summary>Какие файлы открыть?</summary><p>В задании перечислены файлы задачи и изменения в рабочей копии. При повторе после сбоя агент также видит последние действия предыдущей попытки.</p></details>
+    <details><summary>Как проверить работу?</summary><p>Агент видит критерии и команды проверки. После выполнения задач отдельный проверяющий запускает обязательные команды и сохраняет вывод.</p></details>
+  </div>
+  <p class="handoff-download">Продолжает напарник? Нажмите «Скачать для напарника» и передайте Markdown вместе с той же версией кода.</p>
+</section>
 
 <section id="start" class="start"><small>Установка CLI</small><h2>Запустите Pilot в своём проекте</h2><p>Нужны Git, Node.js 22.18 или новее и npm. Скопируйте команду установки в терминал.</p><div class="snippet"><button id="copy">Скопировать</button><pre id="commands">npm install -g https://github.com/yevgenevic/context-pilot/releases/download/v0.1.3/context-pilot-0.1.3.tgz</pre></div><p>В папке проекта выполните <code>pilot init</code> и <code>pilot dashboard</code>. Команда <code>pilot doctor</code> покажет доступные CLI. Codex выполняет задачи автоматически. Для Claude Code можно скачать задание во вкладке «Передача».</p><a class="pill" href="https://github.com/yevgenevic/context-pilot/releases">Релизы на GitHub ↗</a></section></main>
-<footer><a class="brand" href="#top">Context Pilot</a><a href="https://github.com/yevgenevic/context-pilot">GitHub</a></footer></body></html>
+<footer>
+  <div class="footer-brand"><a class="brand" href="#top">Context Pilot</a><p>Память вашего Git-проекта.</p></div>
+  <div class="footer-links"><b>Продукт</b><a href="#case">Как работает</a><a href="#memory">Память проекта</a><a href="#handoff">Передача задачи</a></div>
+  <div class="footer-links"><b>Разработчикам</b><a href="#start">Установить CLI</a><a href="https://github.com/yevgenevic/context-pilot">Исходный код ↗</a><a href="https://github.com/yevgenevic/context-pilot/releases">Релизы ↗</a></div>
+  <a class="back-top" href="#top">Наверх ↑</a>
+</footer></body></html>

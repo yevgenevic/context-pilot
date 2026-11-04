@@ -63,3 +63,15 @@ document.querySelector('#copy').addEventListener('click',async event=>{
   catch { const range=document.createRange();range.selectNodeContents(commands);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);button.textContent='Текст выделен'; }
 });
 document.querySelectorAll('.stage,.spread').forEach(el=>observer.observe(el));
+
+const folderButtons = document.querySelectorAll('.memory-tree [data-folder]');
+for (const button of folderButtons) {
+  button.addEventListener('click', () => {
+    for (const other of folderButtons) {
+      const selected = other === button;
+      other.setAttribute('aria-pressed', String(selected));
+      document.getElementById(other.getAttribute('aria-controls')).hidden = !selected;
+    }
+  });
+}
+observer.observe(document.querySelector('.memory-window'));
