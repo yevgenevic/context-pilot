@@ -1,80 +1,614 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7f6f6"><title>Context Pilot — память проекта для ИИ</title><meta name="description" content="Передайте новому ИИ-агенту задачу, решения и проверки из Git для продолжения работы."><link rel="stylesheet" href="site.css"><script src="site.js" defer></script></head>
-<body id="top"><header><a class="brand" href="#top" aria-label="Context Pilot, наверх"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13a8.8 8.8 0 1 0-16.6 3l6.2-6.1 2.7 8.1 2.3-5.5 5.4.5Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="2.5"/></svg>Context Pilot</a><nav aria-label="Основное меню"><a href="#product">Продукт</a><a href="#case">Как работает</a><a href="#memory">Память проекта</a></nav><div class="nav-right"><a class="pill" href="#start">Установить CLI</a></div></header>
-<main><section class="film" aria-label="Передача задачи в новый чат"><div class="frame">
-<div class="headline">
-<h1>Новый чат.<br>Тот же проект.</h1><p>Каждый агент получает свою задачу, решения проекта<br class="desktop"> и результаты предыдущей сессии.</p><div class="actions"><a class="pill" href="#start">Начать работу</a><a href="#case">Как это работает</a></div></div>
-<div class="window" aria-hidden="true"><aside><div class="dots">● ● ●</div><b>Context Pilot</b><span>Задача</span><span>Передача</span><span>Результат</span></aside><div class="work"><h3>Передача задачи</h3><p>Что получает следующая сессия</p></div></div>
-<div class="float files" data-origin="files"><b>Задание агента</b><p>Цель, связанные файлы и команды проверки.</p></div>
-<div class="float tests" data-origin="tests"><b>Приёмка</b><p>Команды, их вывод и результат проверки.</p></div>
-<div class="float run" data-origin="run"><b>Этапы работы</b><div class="timeline" aria-hidden="true"><i></i><i></i><i></i></div><small>План → Задачи → Проверка</small></div>
-<div class="float composer" data-origin="composer"><b>Продолжение после сбоя</b><p>Новая сессия видит сохранённые правки и последние действия агента.</p></div>
-</div></section>
-<section id="product" class="features"><h2>Что сохраняет Pilot</h2><div class="grid">
-<article><h3>Решения</h3><div class="mini slips" aria-hidden="true"><i>решение.json</i><i>Почему так →</i></div><p>Запишите, о чём договорились и почему. Привяжите решение к задачам, которым оно понадобится.</p></article>
-<article><h3>Рабочая копия</h3><div class="mini branch" aria-hidden="true"><svg viewBox="0 0 230 85"><path d="M10 60h210M53 60c26 0 20-36 47-36h23c29 0 26 36 55 36" fill="none" stroke="currentColor" stroke-width="2"/><g fill="#fbe1d1" stroke="currentColor" stroke-width="2"><circle cx="53" cy="60" r="6"/><circle cx="108" cy="24" r="6"/><circle cx="178" cy="60" r="6"/></g></svg></div><p>Агент видит, какие файлы открыть и что успело измениться в Git с момента постановки задачи.</p></article>
-<article><h3>Новый чат</h3><div class="mini hand" aria-hidden="true"><i>контекст.md</i><b>↳</b><i>Новая сессия</i></div><p>Во вкладке «Передача» можно прочитать задание следующего агента и скачать его для напарника.</p></article></div></section>
-
-<section id="case" class="showcase"><div class="intro"><h2>Как вести проект</h2><p>От первой идеи до проверки готового кода. Все этапы видны в локальном дашборде.</p></div>
-<div class="tabs" role="group" aria-label="Этапы работы"><button aria-pressed="true" aria-controls="case-start" data-tab="0">Начать</button><button aria-pressed="false" aria-controls="case-resume" data-tab="1">Продолжить</button><button aria-pressed="false" aria-controls="case-review" data-tab="2">Проверить</button></div>
-<div class="stage"><div class="terminal">
-<div class="case-panel" id="case-start">
-  <div><h3>Поставьте задачу</h3><p>В папке проекта выполните две команды и откройте адрес из терминала. Нажмите «Новая идея» и опишите, что хотите получить. Если для плана не хватает деталей, Pilot задаст вопросы здесь же.</p></div>
-  <div class="case-inset"><b>В терминале</b><pre><em>$</em> pilot init
-<em>$</em> pilot dashboard</pre></div>
-</div>
-<div class="case-panel" id="case-resume" hidden>
-  <div><h3>Продолжите с места остановки</h3><p>После сбоя выберите этап с ошибкой и нажмите «Повторить этап с ошибкой». Новый агент получит изменения в рабочей копии и последние действия предшественника.</p></div>
-  <div class="case-inset"><b>В разделе «Передача»</b><p>Выберите новую попытку, чтобы прочитать точное задание, с которым агент продолжил работу.</p></div>
-</div>
-<div class="case-panel" id="case-review" hidden>
-  <div><h3>Проверьте результат</h3><p>Отдельный агент проверяет работу по исходной задаче. Если обязательный тест упал, Pilot покажет «Нужны исправления» и передаст расхождение исполнителю.</p></div>
-  <div class="case-inset"><b>В разделе «Результат»</b><p>Раскройте отчёт приёмки и выберите «Команды и фактический вывод», чтобы увидеть, что вернул тест.</p></div>
-</div>
-</div></div></section>
-
-<section class="spread" aria-labelledby="spread-title"><div><h2 id="spread-title">Чат можно закрыть.<br>Решение останется.</h2><p>Сохраните в проекте, о чём вы договорились и почему. Следующий агент получит это решение вместе с задачей.</p><a class="spread-link" href="#memory">Где хранится память <span aria-hidden="true">→</span></a></div><img src="archive.svg" alt=""></section>
-
-<section id="memory" class="project-memory" aria-labelledby="memory-title">
-  <div class="intro"><p class="section-label">Память проекта</p>
-    <h2 id="memory-title">Обычная папка в Git</h2>
-    <p>Откройте папку <code>.pilot</code> в своём редакторе. Здесь лежат решения команды и задачи, для которых они нужны.</p>
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#fafafb">
+  <title>Context Pilot — новый чат, тот же проект</title>
+  <meta name="description" content="Посмотрите, как Context Pilot передаёт задачу между агентами, сохраняет изменения в Git-проекте и проверяет результат. Установите CLI и откройте свой дашборд.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:title" content="Context Pilot — новый чат, тот же проект">
+  <meta property="og:description" content="Один запуск от остановки агента до проверки кода. Посмотрите, что получает следующая сессия.">
+  <meta property="og:url" content="https://yevgenevic.me/context-pilot/">
+  <meta property="og:image" content="https://yevgenevic.me/context-pilot/handoff-story.webp">
+  <meta property="og:image:width" content="768">
+  <meta property="og:image:height" content="768">
+  <link rel="canonical" href="https://yevgenevic.me/context-pilot/">
+  <link rel="icon" href="pilot-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="site.css?v=fe9c8b06be">
+  <link rel="stylesheet" href="hero.css?v=4ef61e5d3f">
+  <link rel="stylesheet" href="chapters.css?v=6e0caff554">
+  <script src="site.js?v=7ba8d689bd" defer></script>
+  <script src="hero.js?v=fe78435dbd" defer></script>
+  <script src="chapters.js?v=41356f3168" defer></script>
+</head>
+<body id="top">
+<a class="cp-skip" href="#product">Перейти к описанию продукта</a>
+<header class="cp-mast">
+  <div class="cp-mast-in">
+    <a class="cp-wordmark" href="#top" aria-label="Context Pilot — наверх"><img src="pilot-mark.svg" width="24" height="24" alt=""><span>Context Pilot</span></a>
+    <nav class="cp-nav" aria-label="Основное меню">
+      <details class="cp-dropdown"><summary>Продукт</summary><div class="cp-pop">
+        <a href="#case">Дашборд<span>От идеи до проверки</span></a>
+        <a href="#memory">Память проекта<span>Файлы рядом с кодом</span></a>
+        <a href="#handoff">Передача задачи<span>С чем откроется новый чат</span></a>
+      </div></details>
+      <details class="cp-dropdown"><summary>Ресурсы</summary><div class="cp-pop">
+        <a href="https://github.com/yevgenevic/context-pilot#readme">Документация<span>Установка и первый запуск</span></a>
+        <a href="handoff-example.md" download>Пример передачи<span>Скачать задание в Markdown</span></a>
+        <a href="https://github.com/yevgenevic/context-pilot/releases">Релизы<span>Версии CLI на GitHub</span></a>
+      </div></details>
+      <a href="#story">История запуска</a>
+      <a href="#start">Установка</a>
+    </nav>
+    <div class="cp-mast-actions"><a class="cp-src" href="https://github.com/yevgenevic/context-pilot">GitHub ↗</a><a class="cp-get" href="#start">Начать</a>
+    <details class="cp-mobile"><summary aria-label="Меню сайта"><span></span><span></span></summary><nav aria-label="Меню на телефоне">
+      <a href="#case">Дашборд</a><a href="#story">История запуска</a><a href="#memory">Память проекта</a><a href="#handoff">Передача задачи</a><a href="#start">Установка</a><a href="https://github.com/yevgenevic/context-pilot">GitHub ↗</a>
+    </nav></details></div>
   </div>
-  <div class="memory-window">
-    <div class="memory-tree" role="group" aria-label="Папки проекта">
-      <div class="tree-root"><span class="folder-icon" aria-hidden="true"></span><code>.pilot</code></div>
-      <button type="button" aria-pressed="true" aria-controls="memory-rules" data-folder><span class="folder-icon" aria-hidden="true"></span><code>rules/</code></button>
-      <button type="button" aria-pressed="false" aria-controls="memory-tasks" data-folder><span class="folder-icon" aria-hidden="true"></span><code>tasks/</code></button>
+</header>
+<main>
+
+<section class="pilot-hero" aria-labelledby="pilot-hero-title">
+  <div class="pilot-hero-frame">
+    <div class="pilot-hero-wash" aria-hidden="true"></div>
+    <div class="pilot-hero-intro">
+      <a class="pilot-hero-news" href="https://github.com/yevgenevic/context-pilot/releases/tag/v0.1.3">
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3.5 13.5h12c-2-2-2.4-3.2-2.4-5.2A4.1 4.1 0 0 0 9 4.2a4.1 4.1 0 0 0-4.1 4.1c0 2.1-.3 3.2-1.4 5.2ZM7.6 15.5a1.8 1.8 0 0 0 3.4 0" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.3"/><circle cx="15" cy="4" r="2.7" fill="#e8a3a5"/></svg>
+        <span>Context Pilot 0.1.3 уже доступен</span><span aria-hidden="true">→</span>
+      </a>
+      <h1 id="pilot-hero-title">Новый чат.<br>Тот же проект.</h1>
+      <p>Context Pilot передаёт следующему ИИ-агенту задачу, файлы и решения, чтобы вы могли продолжить с места остановки.</p>
+      <div class="pilot-hero-actions"><a class="pilot-hero-primary" href="#start">Установить CLI</a><a href="#case">Как это работает</a></div>
     </div>
-    <div class="memory-pane" id="memory-rules">
-      <div class="memory-path"><code>.pilot / rules /</code><span>JSON</span></div>
-      <h3>Решение команды</h3><p>Запишите договорённость один раз. Когда вы свяжете её с задачей, Pilot включит решение в задание агента.</p>
-      <dl><div><dt><code>text</code></dt><dd>Что решили и почему.</dd></div><div><dt><code>files</code></dt><dd>К каким файлам относится решение.</dd></div></dl>
+
+    <div class="pilot-hero-desktop" aria-hidden="true">
+      <div class="pilot-hero-shell">
+        <div class="pilot-hero-side">
+          <div class="pilot-hero-lights"><i></i><i></i><i></i></div>
+          <strong><i class="pilot-hero-mark">P</i>Context Pilot</strong>
+          <small>Проект</small><span class="pilot-hero-selected"><i>⌂</i>Обзор</span><span><i>☷</i>План проекта</span><span><i>↳</i>Передача</span><span><i>☑</i>Результат</span>
+          <small>Рабочая копия</small><span><i>⑂</i>Git</span><span><i>▱</i>.pilot</span>
+        </div>
+        <div class="pilot-hero-app">
+          <div class="pilot-hero-appbar"><span>‹</span> Отчёт времени <em>Запись запуска</em></div>
+          <div class="pilot-hero-home">
+            <b class="pilot-hero-app-title">Продолжение задачи</b>
+            <div class="pilot-hero-toprow">
+              <div data-hero-slot="prompt"></div>
+              <div class="pilot-hero-recent"><b>Последние действия</b><span>① &nbsp; Изменены два файла</span><span>② &nbsp; Первая сессия остановилась</span></div>
+            </div>
+            <div class="pilot-hero-midrow">
+              <div class="pilot-hero-branch"><b>Путь задачи</b><svg viewBox="0 0 220 90" role="presentation"><g fill="none"><path d="M10 18H210M10 45H210M10 72H210" stroke="#d2def0"/><path d="M12 65H56C79 65 62 29 86 29h37c24 0 11 31 36 31h47" stroke="#345d89" stroke-width="3"/></g><g fill="#e7edf7" stroke="#345d89" stroke-width="2"><circle cx="12" cy="65" r="4"/><circle cx="99" cy="29" r="4"/><circle cx="205" cy="60" r="4"/></g></svg><small>Правки &nbsp; · &nbsp; Передача &nbsp; · &nbsp; Проверка</small></div>
+              <div data-hero-slot="files"></div><div data-hero-slot="sessions"></div>
+            </div>
+            <div class="pilot-hero-lowrow"><div data-hero-slot="checks"></div><div><b>Задача</b><strong>--total-only</strong><small>Общее время за период</small></div><div><b>Команда проверки</b><strong>npm test</strong><small>Отдельный агент</small></div></div>
+          </div>
+          <div class="pilot-hero-receipt">
+            <span class="pilot-hero-question">Что получил второй агент?</span>
+            <span class="pilot-hero-receipt-label">Передача &nbsp;›&nbsp; Попытка 2</span>
+            <div class="pilot-hero-packet">
+              <span class="pilot-hero-docicon">↳</span>
+              <div><strong>Задание следующего агента</strong><p>Продолжить работу над <code>--total-only</code>. Изменения первого агента уже в рабочей копии.</p></div>
+              <div class="pilot-hero-chips"><code>work-time.js</code><code>work-time.test.js</code></div>
+              <div class="pilot-hero-report-chart">
+                <div><b>Отчёт по дням</b><span>Итог <strong>95</strong> мин</span></div>
+                <div class="pilot-hero-report-plot">
+                  <div><i>75 мин</i><span></span><small>1 ноя</small></div>
+                  <div><i>20 мин</i><span></span><small>2 ноя</small></div>
+                </div>
+              </div>
+            </div>
+            <div class="pilot-hero-verification">
+              <b>Проверка результата</b>
+              <div><i>×</i><span>Нужны исправления<small>Получено 96 минут вместо 95</small></span><code>exit 1</code></div>
+              <div><i>✓</i><span>Проверено<small>После исправления — 95 минут</small></span><code>exit 0</code></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pilot-hero-floating pilot-hero-files" data-hero-card="files">
+        <b>Рабочая копия</b><div><span>work-time.js</span><i>M</i></div><div><span>work-time.test.js</span><i>M</i></div><div><span>Файлов с правками</span><i>2</i></div><div><span>Источник</span><i>Git</i></div>
+      </div>
+      <div class="pilot-hero-floating pilot-hero-sessions" data-hero-card="sessions">
+        <b>Исполнение задачи</b><div class="pilot-hero-donut"><strong>2</strong><small>сессии</small></div><strong class="pilot-hero-smallstat">1 передача</strong><small>между агентами</small>
+      </div>
+      <div class="pilot-hero-floating pilot-hero-checks" data-hero-card="checks">
+        <b>Приёмка</b><div class="pilot-hero-trend"><svg viewBox="0 0 118 65"><g fill="none"><path d="M8 7v47m49-47v47m48-47v47" stroke="#e1e2e1"/><path d="M8 47h36c15 0 12-31 28-31h33" stroke="#555957" stroke-width="1.5"/></g><circle cx="8" cy="47" r="2.8" fill="white" stroke="#555957"/><circle cx="105" cy="16" r="3" fill="#555957"/></svg></div><strong class="pilot-hero-smallstat">3 → 9</strong><small>из 9 критериев</small>
+        <span class="pilot-hero-pointer pilot-hero-pointer-one">А1</span>
+      </div>
+      <div class="pilot-hero-floating pilot-hero-prompt" data-hero-card="prompt">
+        <div class="pilot-hero-prompt-copy"><span>Задача для агента…</span><strong>Добавить флаг --total-only в отчёт времени.</strong></div>
+        <div class="pilot-hero-prompt-tools"><span>⌘ &nbsp; ◷</span><i>↑</i></div><span class="pilot-hero-pointer pilot-hero-pointer-two">А2</span>
+      </div>
     </div>
-    <div class="memory-pane" id="memory-tasks" hidden>
-      <div class="memory-path"><code>.pilot / tasks /</code><span>JSON</span></div>
-      <h3>Задание для агента</h3><p>Опишите результат, привяжите нужные решения и укажите, как проверить работу.</p>
-      <dl><div><dt><code>rules</code></dt><dd>Какие решения применить.</dd></div><div><dt><code>checks</code></dt><dd>Что проверить перед завершением.</dd></div></dl>
-    </div>
+    <figure class="pilot-hero-static-scene" aria-hidden="true">
+      <div class="pilot-hero-mini-app">
+        <div class="pilot-hero-mini-side">
+          <span class="pilot-hero-mini-lights">● ● ●</span><b><i>P</i> Context Pilot</b>
+          <span>⌂ &nbsp; Обзор</span><span>☷ &nbsp; План проекта</span><span>↳ &nbsp; Передача</span><span>☑ &nbsp; Результат</span>
+        </div>
+        <div class="pilot-hero-mini-body">
+          <small>‹ &nbsp;&nbsp; Отчёт времени</small><strong>Продолжение задачи</strong>
+          <div class="pilot-hero-mini-input">Добавить флаг --total-only.<span>⌘ &nbsp; ◷</span></div>
+          <div class="pilot-hero-mini-grid">
+            <div class="pilot-hero-mini-path"><b>Путь задачи</b>
+              <svg viewBox="0 0 160 60" fill="none"><path d="M3 12h154M3 31h154M3 50h154" stroke="#d0dced"/><path d="M4 44h28c18 0 12-26 32-26h32c16 0 10 23 34 23h23" stroke="#43668d" stroke-width="2.2"/><g fill="#f4f7fc" stroke="#43668d" stroke-width="1.6"><circle cx="5" cy="44" r="3"/><circle cx="80" cy="18" r="3"/><circle cx="152" cy="41" r="3"/></g></svg>
+              <small>Остановка &nbsp; · &nbsp; Передача &nbsp; · &nbsp; Приёмка</small>
+            </div>
+            <div class="pilot-hero-mini-files"><b>Рабочая копия</b><span>work-time.js</span><span>work-time.test.js</span><small>2 файла из Git</small></div>
+            <div class="pilot-hero-mini-check"><b>После исправления</b><strong>95 мин</strong><small>Итог за период</small></div>
+            <div class="pilot-hero-mini-check"><b>Проверка</b><strong>exit 0</strong><small>npm test</small></div>
+          </div>
+        </div>
+      </div>
+      <div class="pilot-hero-mini-report">
+        <b>Проверка результата <span>↗</span></b>
+        <div class="pilot-hero-mini-pill">✓ &nbsp; Проверено</div>
+        <strong>Приёмка задачи</strong><small>Выполненные критерии</small>
+        <div class="pilot-hero-mini-bars"><i><span>3/9</span></i><i><span>9/9</span></i></div>
+        <div class="pilot-hero-mini-axis">До правки <span>После</span></div>
+        <div class="pilot-hero-mini-report-foot"><b>Переданы агенту</b><span>work-time.js</span><span>work-time.test.js</span></div>
+      </div>
+    </figure>
+    <p class="pilot-hero-accessible-run">В записи первый агент меняет два файла, а после остановки второй агент получает его правки и продолжает работу. Независимая проверка находит ошибку. После исправления тест проходит.</p>
+    <details class="pilot-hero-transcript">
+      <summary class="pilot-hero-transcript-label"><i></i> Запись запуска · Отчёт времени <span>Подробнее</span></summary>
+      <ol>
+        <li><span>01</span><div><b>Первый агент остановился</b><p>В Git остались изменения в <code>work-time.js</code> и <code>work-time.test.js</code>.</p></div></li>
+        <li><span>02</span><div><b>Второй агент продолжил</b><p>После повтора этапа он получил эти два файла и задачу — добавить флаг <code>--total-only</code>.</p></div></li>
+        <li><span>03</span><div><b>Проверяющий нашёл ошибку</b><p>Тест вернул 96 минут вместо 95. После исправления <code>npm test</code> прошёл, Pilot принял 9 из 9 критериев.</p></div></li>
+      </ol>
+    </details>
   </div>
-  <div class="memory-notes"><div><h3>В редакторе</h3><p>Для правки достаточно открыть JSON-файл.</p></div><div><h3>В истории Git</h3><p>Добавьте изменения в коммит, чтобы сохранить версию решения.</p></div><div><h3>На ревью</h3><p>Обсудите правку правила вместе с изменениями в коде.</p></div><div><h3>У напарника</h3><p>После клонирования проекта напарник увидит сохранённые в Git договорённости.</p></div></div>
 </section>
 
-<section id="handoff" class="next-session" aria-labelledby="handoff-title">
-  <div class="intro"><p class="section-label">Передача работы</p><h2 id="handoff-title">С чего начнёт агент?</h2>
-    <p>На вкладке «Передача» можно прочитать задание, с которым открылась новая сессия.</p>
+<svg width="0" height="0" class="cp-svg-bank" aria-hidden="true" focusable="false"><defs>
+    <symbol id="cp-i-mark" viewBox="0 0 24 24"><path d="M20.5 13a8.8 8.8 0 1 0-16.6 3l6.2-6.1 2.7 8.1 2.3-5.5 5.4.5Z"/>
+    </symbol>
+    <symbol id="cp-i-git" viewBox="0 0 24 24"><path d="m12 2 10 10-10 10L2 12Z M8 7l8 8 M9 8v8 M16 15v1"/>
+    </symbol>
+    <symbol id="cp-i-terminal" viewBox="0 0 24 24"><path d="M3 5h18v14H3z M7 9l3 3-3 3 M12 15h4"/>
+    </symbol>
+    <symbol id="cp-i-node" viewBox="0 0 24 24"><path d="m12 2 9 5v10l-9 5-9-5V7z M8 14v-5l8 6v-5"/>
+    </symbol>
+    <symbol id="cp-i-file" viewBox="0 0 24 24"><path d="M6 2h8l5 5v15H6z M14 2v6h5 M9 12h7 M9 16h5"/>
+    </symbol>
+    <symbol id="cp-i-folder" viewBox="0 0 24 24"><path d="M2 7V5h7l2 2h11v12H2z"/>
+    </symbol>
+    <symbol id="cp-i-flow" viewBox="0 0 24 24"><path d="M5 4h4v4H5z M15 16h4v4h-4z M7 8v7h10v1"/>
+    </symbol>
+    <symbol id="cp-i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/>
+    </symbol>
+    <symbol id="cp-i-chat" viewBox="0 0 24 24"><path d="M3 4h18v13h-10l-5 4v-4H3z"/>
+    </symbol>
+    <symbol id="cp-i-branch" viewBox="0 0 24 24"><path d="M6 4v16 M18 6c0 6-6 7-12 7 M6 4a2 2 0 1 1 0 .1 M18 4a2 2 0 1 1 0 .1 M6 18a2 2 0 1 1 0 .1"/>
+    </symbol>
+    <symbol id="cp-i-box" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5z M3 7v10l9 5 9-5V7 M12 12v10"/>
+    </symbol>
+    <symbol id="cp-i-layers" viewBox="0 0 24 24"><path d="m12 3 10 5-10 5L2 8z M2 12l10 5 10-5 M2 16l10 5 10-5"/>
+    </symbol>
+    <symbol id="cp-i-search" viewBox="0 0 24 24"><path d="M16 10a6 6 0 1 1-12 0 6 6 0 0 1 12 0z M15 15l6 6"/>
+    </symbol>
+    <symbol id="cp-i-shield" viewBox="0 0 24 24"><path d="m12 2 8 3v7c0 5-4 8-8 10-4-2-8-5-8-10V5z M8 11l3 3 5-6"/>
+    </symbol>
+    <symbol id="cp-i-book" viewBox="0 0 24 24"><path d="M3 4c4-1 6 0 9 2 3-2 5-3 9-2v14c-4-1-6 0-9 2-3-2-5-3-9-2z M12 6v14"/>
+    </symbol>
+    <symbol id="cp-i-list" viewBox="0 0 24 24"><path d="M4 5h3v3H4z M10 6h10 M4 11h3v3H4z M10 12h10 M4 17h3v3H4z M10 18h10"/>
+    </symbol>
+    <symbol id="cp-i-codex" viewBox="0 0 24 24"><path d="m7 5-5 7 5 7 M17 5l5 7-5 7 M14 6l-4 12"/>
+    </symbol>
+    <symbol id="cp-i-claude" viewBox="0 0 24 24"><path d="M12 2v20 M2 12h20 M5 5l14 14 M19 5 5 19 M7 3l10 18 M3 7l18 10 M17 3 7 21 M21 7 3 17"/>
+    </symbol>
+    <symbol id="cp-i-md" viewBox="0 0 24 24"><path d="M2 5h20v14H2z M5 15V9l3 3 3-3v6 M16 8v7l-3-3m3 3 3-3"/>
+    </symbol>
+    <symbol id="cp-i-clock" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 1 1 18 0z M12 6v6l4 2"/>
+    </symbol>
+    <symbol id="cp-i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/>
+    </symbol>
+    <symbol id="cp-i-turn" viewBox="0 0 24 24"><path d="M4 5v9h15m-6-6 6 6-6 6"/>
+    </symbol>
+    <symbol id="cp-i-inbox" viewBox="0 0 24 24"><path d="M3 5h18v14H3z M3 13h5l1 2h6l1-2h5"/>
+    </symbol>
+    <symbol id="cp-i-activity" viewBox="0 0 24 24"><path d="M2 12h5l3-8 4 16 3-8h5"/>
+    </symbol>
+    <symbol id="cp-i-copy" viewBox="0 0 24 24"><path d="M8 8h12v13H8z M16 5V3H4v13h1"/>
+    </symbol></defs></svg>
+<section class="cp-tools" aria-label="Инструменты проекта">
+  <p>Работает с вашими инструментами</p>
+  <div class="cp-tools-mask">
+    <div class="cp-tools-track">
+      <div><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-git"/></svg>Git</span><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-codex"/></svg>Codex CLI</span><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-claude"/></svg>Claude Code</span><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-node"/></svg>Node.js</span><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-terminal"/></svg>Терминал</span><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-md"/></svg>Markdown</span>
+      </div>
+      <div aria-hidden="true"><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-git"/></svg>Git</span><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-codex"/></svg>Codex CLI</span><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-claude"/></svg>Claude Code</span><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-node"/></svg>Node.js</span><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-terminal"/></svg>Терминал</span><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-md"/></svg>Markdown</span>
+      </div>
+    </div>
   </div>
-  <div class="handoff-questions">
-    <details open><summary>Что уже решили?</summary><p>Агент получает цель задачи и связанные с ней правила. Если при планировании были уточнения, в задании будут и ваши ответы.</p></details>
-    <details><summary>Какие файлы открыть?</summary><p>В задании перечислены файлы задачи и изменения в рабочей копии. При повторе после сбоя агент также видит последние действия предыдущей попытки.</p></details>
-    <details><summary>Как проверить работу?</summary><p>Агент видит критерии и команды проверки. После выполнения задач отдельный проверяющий запускает обязательные команды и сохраняет вывод.</p></details>
-  </div>
-  <p class="handoff-download">Продолжает напарник? Нажмите «Скачать для напарника» и передайте Markdown вместе с той же версией кода.</p>
 </section>
-
-<section id="start" class="start"><small>Установка CLI</small><h2>Запустите Pilot в своём проекте</h2><p>Нужны Git, Node.js 22.18 или новее и npm. Скопируйте команду установки в терминал.</p><div class="snippet"><button id="copy">Скопировать</button><pre id="commands">npm install -g https://github.com/yevgenevic/context-pilot/releases/download/v0.1.3/context-pilot-0.1.3.tgz</pre></div><p>В папке проекта выполните <code>pilot init</code> и <code>pilot dashboard</code>. Команда <code>pilot doctor</code> покажет доступные CLI. Codex выполняет задачи автоматически. Для Claude Code можно скачать задание во вкладке «Передача».</p><a class="pill" href="https://github.com/yevgenevic/context-pilot/releases">Релизы на GitHub ↗</a></section></main>
-<footer>
-  <div class="footer-brand"><a class="brand" href="#top">Context Pilot</a><p>Память вашего Git-проекта.</p></div>
-  <div class="footer-links"><b>Продукт</b><a href="#case">Как работает</a><a href="#memory">Память проекта</a><a href="#handoff">Передача задачи</a></div>
-  <div class="footer-links"><b>Разработчикам</b><a href="#start">Установить CLI</a><a href="https://github.com/yevgenevic/context-pilot">Исходный код ↗</a><a href="https://github.com/yevgenevic/context-pilot/releases">Релизы ↗</a></div>
-  <a class="back-top" href="#top">Наверх ↑</a>
-</footer></body></html>
+<section class="cp-chapter cp-values" id="product">
+  <div class="cp-wrap">
+    <h2>Память для работы<br>между чатами</h2>
+    <div class="cp-triptych">
+      <article class="cp-card-active" tabindex="0">
+        <h3>План и задачи</h3>
+        <div class="cp-illus cp-plan-illus" aria-hidden="true">
+          <div class="cp-paper-stack"><i></i><i></i>
+            <div><b><svg class="cp-i" aria-hidden="true"><use href="#cp-i-list"/></svg> План работы</b><span><em>1</em> Реализация</span><span><em>2</em> Проверка</span>
+            </div>
+          </div>
+        </div>
+        <p>Опишите идею. Pilot разложит её на шаги и запишет, по каким признакам принимать каждый результат.</p>
+      </article>
+      <article tabindex="0">
+        <h3>Контекст между сессиями</h3>
+        <div class="cp-illus cp-transfer-illus" aria-hidden="true">
+          <div class="cp-wire-art"><i><svg class="cp-i" aria-hidden="true"><use href="#cp-i-terminal"/></svg></i><span></span><b><svg class="cp-i" aria-hidden="true"><use href="#cp-i-file"/></svg></b><span></span><i><svg class="cp-i" aria-hidden="true"><use href="#cp-i-terminal"/></svg></i>
+          </div>
+        </div>
+        <p>Следующий агент получает задание, решения и изменения в файлах. Вам не придётся пересказывать предыдущий чат.</p>
+      </article>
+      <article tabindex="0">
+        <h3>Независимая проверка</h3>
+        <div class="cp-illus cp-test-illus" aria-hidden="true">
+          <div><i><svg class="cp-i" aria-hidden="true"><use href="#cp-i-check"/></svg></i><b>9 <em>/ 9</em></b><span>Критерии приёмки</span>
+          </div>
+        </div>
+        <p>Отдельный агент запускает обязательные команды. Если тест упал, задача возвращается на исправление.</p>
+      </article>
+    </div>
+  </div>
+</section>
+<section class="cp-chapter cp-work" id="case">
+  <div class="cp-wrap">
+    <div class="cp-titleblock"><span class="cp-chapter-kicker">Дашборд <span aria-hidden="true">›</span></span>
+      <h2>От идеи до проверки</h2>
+      <p>Опишите, что хотите сделать. Следите за задачей, передачей контекста и результатом в одном окне.</p><a class="cp-plainlink" href="#story">Посмотреть запуск <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="cp-explorer" data-cp-tabs>
+      <div class="cp-switch" role="tablist" aria-orientation="vertical" aria-label="Этапы запуска">
+        <button type="button" role="tab" id="cp-tab-work-0" aria-controls="cp-panel-work-0" aria-selected="true" tabindex="0"><b>Идея</b><span>Сформулируйте результат и способ его проверить. Если в идее чего-то не хватает, Pilot спросит до запуска.</span>
+        </button>
+        <button type="button" role="tab" id="cp-tab-work-1" aria-controls="cp-panel-work-1" aria-selected="false" tabindex="-1"><b>План</b><span>Каждый шаг получает цель, файлы и критерии приёмки. Проверка результата вынесена в отдельный этап.</span>
+        </button>
+        <button type="button" role="tab" id="cp-tab-work-2" aria-controls="cp-panel-work-2" aria-selected="false" tabindex="-1"><b>Остановка</b><span>Pilot сохраняет состояние задачи и показывает, какие файлы изменились до остановки.</span>
+        </button>
+        <button type="button" role="tab" id="cp-tab-work-3" aria-controls="cp-panel-work-3" aria-selected="false" tabindex="-1"><b>Передача</b><span>После повторного запуска второй агент получает ту же задачу и изменения первого исполнителя.</span>
+        </button>
+        <button type="button" role="tab" id="cp-tab-work-4" aria-controls="cp-panel-work-4" aria-selected="false" tabindex="-1"><b>Проверка</b><span>Проверяющий сравнивает результат с исходным заданием. Ошибка команды блокирует завершение этапа.</span>
+        </button>
+        <button type="button" role="tab" id="cp-tab-work-5" aria-controls="cp-panel-work-5" aria-selected="false" tabindex="-1"><b>Результат</b><span>После исправления проверяющий снова запускает команду и записывает вывод. Статус можно сверить с отчётом.</span>
+        </button>
+      </div>
+      <div class="cp-demo-window">
+        <div class="cp-demo-rail" aria-hidden="true">
+          <div class="cp-traffic"><i></i><i></i><i></i>
+          </div><b><svg class="cp-i" aria-hidden="true"><use href="#cp-i-mark"/></svg> Context Pilot</b><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-list"/></svg> План</span><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-activity"/></svg> Запуски</span><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-inbox"/></svg> Передача</span><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-check"/></svg> Результат</span><small>ПРОЕКТ</small><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-folder"/></svg> Учёт времени</span>
+        </div>
+        <div class="cp-demo-main">
+          <div class="cp-titlebar"><svg class="cp-i" aria-hidden="true"><use href="#cp-i-mark"/></svg> Рабочая область <i>/</i> Запись запуска</div>
+          <div class="cp-panel" id="cp-panel-work-0" role="tabpanel" aria-labelledby="cp-tab-work-0" tabindex="0">
+            <div class="cp-demo-inner">
+              <div class="cp-view-heading"><i><svg class="cp-i" aria-hidden="true"><use href="#cp-i-chat"/></svg></i><small>Учёт рабочего времени</small>
+                <h3>Новая идея</h3><span class="cp-badge cp-grey">Постановка</span>
+              </div>
+              <div class="cp-idea-prompt">Добавь в CLI флаг <code>--total-only</code>. За выбранный период он должен печатать только итог в минутах.</div>
+              <div class="cp-minihead">Что считать результатом</div>
+              <ol class="cp-list"><li><span>01</span>
+                  <div><b>95 минут за два дня</b><small>Для пустого периода выводится 0.</small>
+                  </div></li><li><span>02</span>
+                  <div><b>Прежние форматы работают</b><small>Проверить командой npm test.</small>
+                  </div></li>
+              </ol>
+            </div>
+          </div>
+          <div class="cp-panel" id="cp-panel-work-1" role="tabpanel" aria-labelledby="cp-tab-work-1" tabindex="0" hidden>
+            <div class="cp-demo-inner">
+              <div class="cp-view-heading"><i><svg class="cp-i" aria-hidden="true"><use href="#cp-i-list"/></svg></i><small>Учёт рабочего времени</small>
+                <h3>План работы</h3><span class="cp-badge cp-grey">Два этапа</span>
+              </div>
+              <ol class="cp-list"><li><span>01</span>
+                  <div><b>Добавить --total-only и тесты</b><small>Исполнитель · work-time.js и work-time.test.js</small>
+                  </div></li><li><span>02</span>
+                  <div><b>Проверить реализацию</b><small>Отдельный агент · npm test</small>
+                  </div></li>
+              </ol>
+              <div class="cp-callout"><svg class="cp-i" aria-hidden="true"><use href="#cp-i-branch"/></svg> Один этап завершается перед началом следующего.</div>
+            </div>
+          </div>
+          <div class="cp-panel" id="cp-panel-work-2" role="tabpanel" aria-labelledby="cp-tab-work-2" tabindex="0" hidden>
+            <div class="cp-demo-inner">
+              <div class="cp-view-heading"><i><svg class="cp-i" aria-hidden="true"><use href="#cp-i-activity"/></svg></i><small>Учёт рабочего времени</small>
+                <h3>Что изменилось</h3><span class="cp-badge cp-amber">Агент остановлен</span>
+              </div>
+              <div class="cp-minihead">До остановки изменены два файла</div>
+              <div class="cp-file-row"><svg class="cp-i" aria-hidden="true"><use href="#cp-i-file"/></svg><code>work-time.js</code><span>M</span>
+              </div>
+              <div class="cp-file-row"><svg class="cp-i" aria-hidden="true"><use href="#cp-i-file"/></svg><code>work-time.test.js</code><span>M</span>
+              </div>
+              <div class="cp-callout"><svg class="cp-i" aria-hidden="true"><use href="#cp-i-clock"/></svg> Этот этап можно повторить с новой сессией.</div>
+            </div>
+          </div>
+          <div class="cp-panel" id="cp-panel-work-3" role="tabpanel" aria-labelledby="cp-tab-work-3" tabindex="0" hidden>
+            <div class="cp-demo-inner">
+              <div class="cp-view-heading"><i><svg class="cp-i" aria-hidden="true"><use href="#cp-i-inbox"/></svg></i><small>Учёт рабочего времени</small>
+                <h3>Контекст новой сессии</h3><span class="cp-badge cp-grey">Попытка 2</span>
+              </div>
+              <div class="cp-papertext"><small>Задача</small><b>Довести до конца режим --total-only</b><small>Начать с изменённых файлов</small>
+                <div class="cp-file-row"><svg class="cp-i" aria-hidden="true"><use href="#cp-i-file"/></svg><code>work-time.js</code><span>M</span>
+                </div>
+                <div class="cp-file-row"><svg class="cp-i" aria-hidden="true"><use href="#cp-i-file"/></svg><code>work-time.test.js</code><span>M</span>
+                </div><small>Обязательная проверка</small><code>npm test</code>
+              </div>
+            </div>
+          </div>
+          <div class="cp-panel" id="cp-panel-work-4" role="tabpanel" aria-labelledby="cp-tab-work-4" tabindex="0" hidden>
+            <div class="cp-demo-inner">
+              <div class="cp-view-heading"><i><svg class="cp-i" aria-hidden="true"><use href="#cp-i-shield"/></svg></i><small>Учёт рабочего времени</small>
+                <h3>Нужны исправления</h3><span class="cp-badge cp-grey">Первая проверка</span>
+              </div>
+              <div class="cp-metric"><b>3 <em>/ 9</em></b><small>критериев пройдено</small>
+              </div>
+              <div class="cp-log"><b>$ npm test</b><span>Ожидалось: 95</span><span>Получено: 96</span><strong>Код выхода: 1</strong>
+              </div>
+            </div>
+          </div>
+          <div class="cp-panel" id="cp-panel-work-5" role="tabpanel" aria-labelledby="cp-tab-work-5" tabindex="0" hidden>
+            <div class="cp-demo-inner">
+              <div class="cp-view-heading"><i><svg class="cp-i" aria-hidden="true"><use href="#cp-i-check"/></svg></i><small>Учёт рабочего времени</small>
+                <h3>Проверено</h3><span class="cp-badge cp-grey">Повторная проверка</span>
+              </div>
+              <div class="cp-metric"><b>9 <em>/ 9</em></b><small>критериев пройдено</small>
+              </div>
+              <div class="cp-log cp-log-ok"><b>$ npm test</b><span>Проверки work-time CLI пройдены</span><strong>Код выхода: 0</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="cp-chapter cp-story" id="story" data-story-color="0">
+  <div class="cp-wrap cp-story-grid">
+    <div class="cp-story-copy"><span class="cp-chapter-kicker">Реальный запуск <span aria-hidden="true">›</span></span>
+      <div class="cp-story-body" aria-live="polite">
+        <div class="cp-story-item" data-cp-story="0">
+          <h2>Агент остановился.<br>Два файла остались.</h2>
+          <p>Первая сессия успела изменить реализацию и тест. Её прервали специально, чтобы проверить восстановление.</p>
+        </div>
+        <div class="cp-story-item" data-cp-story="1" hidden>
+          <h2>Второй агент получил<br>обе правки.</h2>
+          <p>После нажатия «Повторить этап с ошибкой» следующая сессия получила оба файла и последние действия предыдущей.</p>
+        </div>
+        <div class="cp-story-item" data-cp-story="2" hidden>
+          <h2>Одна лишняя минута<br>остановила приёмку.</h2>
+          <p>Контрольный сбой дал 96 минут вместо 95. Pilot зафиксировал упавший тест и вернул работу на исправление.</p>
+        </div>
+        <div class="cp-story-item" data-cp-story="3" hidden>
+          <h2>Девять критериев.<br>Все проверены.</h2>
+          <p>После исправления отдельный агент снова запустил тест. За выбранные два дня CLI вернул 95 минут, за пустой период — 0.</p>
+        </div>
+      </div><a class="cp-story-link" href="#handoff">Открыть передачу <svg class="cp-i" aria-hidden="true"><use href="#cp-i-arrow"/></svg></a>
+      <div class="cp-story-options" role="group" aria-label="Моменты запуска">
+        <button type="button" data-cp-moment="0" aria-pressed="true">Сбой</button>
+        <button type="button" data-cp-moment="1" aria-pressed="false">Передача</button>
+        <button type="button" data-cp-moment="2" aria-pressed="false">Исправление</button>
+        <button type="button" data-cp-moment="3" aria-pressed="false">Приёмка</button>
+      </div>
+    </div>
+    <div class="cp-story-art"><img src="handoff-story.webp" width="640" height="640" loading="lazy" decoding="async" alt="Две коралловые дискеты и бумажная лента">
+    </div>
+  </div>
+</section>
+<section class="cp-chapter cp-memory" id="memory">
+  <div class="cp-wrap">
+    <div class="cp-titleblock"><span class="cp-chapter-kicker">Память проекта <span aria-hidden="true">›</span></span>
+      <h2>Контекст рядом<br>с кодом</h2>
+      <p>Решения, задачи и критерии живут в вашем Git-проекте. Новый агент забирает только то, что нужно для его этапа.</p><a class="cp-plainlink" href="https://github.com/yevgenevic/context-pilot/tree/main/src">Смотреть исходники <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="cp-explorer" data-cp-tabs>
+      <div class="cp-switch" role="tablist" aria-orientation="vertical" aria-label="Состав памяти">
+        <button type="button" role="tab" id="cp-tab-mem-0" aria-controls="cp-panel-mem-0" aria-selected="true" tabindex="0"><b>Как устроена память</b><span>Цель и решения живут рядом с кодом. События запуска Pilot сохраняет отдельно, внутри служебной папки Git.</span>
+        </button>
+        <button type="button" role="tab" id="cp-tab-mem-1" aria-controls="cp-panel-mem-1" aria-selected="false" tabindex="-1"><b>Правила и решения</b><span>Полезные договорённости можно положить в Git, объяснить причину и связать решение с задачей.</span>
+        </button>
+        <button type="button" role="tab" id="cp-tab-mem-2" aria-controls="cp-panel-mem-2" aria-selected="false" tabindex="-1"><b>Задачи</b><span>В файле задачи лежат цель, нужные файлы и критерии. Их может открыть следующий агент или напарник.</span>
+        </button>
+        <button type="button" role="tab" id="cp-tab-mem-3" aria-controls="cp-panel-mem-3" aria-selected="false" tabindex="-1"><b>История запуска</b><span>Попытки, события и снимки хранятся локально. Здесь Pilot находит, с чем агент действительно начал работу.</span>
+        </button>
+        <button type="button" role="tab" id="cp-tab-mem-4" aria-controls="cp-panel-mem-4" aria-selected="false" tabindex="-1"><b>Файл для напарника</b><span>Во вкладке «Передача» можно скачать Markdown и передать его вместе с той же версией кода.</span>
+        </button>
+      </div>
+      <div class="cp-memory-canvas">
+        <div class="cp-panel" id="cp-panel-mem-0" role="tabpanel" aria-labelledby="cp-tab-mem-0" tabindex="0">
+          <div class="cp-map">
+            <div class="cp-map-input"><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-list"/></svg> Задача</span><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-branch"/></svg> Git diff</span><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-book"/></svg> Решения</span>
+            </div>
+            <div class="cp-map-core"><svg class="cp-i" aria-hidden="true"><use href="#cp-i-mark"/></svg><b>Context Pilot</b><small>Контекст задачи</small>
+              <div><i>Файлы</i><i>Цель</i><i>Проверки</i>
+              </div>
+            </div>
+            <div class="cp-map-out"><svg class="cp-i" aria-hidden="true"><use href="#cp-i-inbox"/></svg><b>Новая<br>сессия</b>
+            </div>
+          </div>
+        </div>
+        <div class="cp-panel" id="cp-panel-mem-1" role="tabpanel" aria-labelledby="cp-tab-mem-1" tabindex="0" hidden>
+          <div class="cp-darkdoc"><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-folder"/></svg> .pilot / rules</span>
+            <h3>Правила проекта</h3>
+            <p>Что нужно учитывать агенту при работе над задачей</p>
+            <dl>
+              <div><dt>Решение</dt><dd>О чём договорилась команда</dd>
+              </div>
+              <div><dt>Причина</dt><dd>Почему выбран этот подход</dd>
+              </div>
+              <div><dt>Связь</dt><dd>К каким задачам это относится</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+        <div class="cp-panel" id="cp-panel-mem-2" role="tabpanel" aria-labelledby="cp-tab-mem-2" tabindex="0" hidden>
+          <div class="cp-darkdoc"><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-folder"/></svg> .pilot / tasks</span>
+            <h3>Добавить --total-only</h3>
+            <p>Вывести суммарное время за период</p>
+            <dl>
+              <div><dt>Файл</dt><dd>work-time.js</dd>
+              </div>
+              <div><dt>Тесты</dt><dd>work-time.test.js</dd>
+              </div>
+              <div><dt>Команда</dt><dd>npm test</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+        <div class="cp-panel" id="cp-panel-mem-3" role="tabpanel" aria-labelledby="cp-tab-mem-3" tabindex="0" hidden>
+          <div class="cp-darkdoc"><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-clock"/></svg> .git / context-pilot</span>
+            <h3>История попыток</h3>
+            <dl>
+              <div><dt>01</dt><dd>Первый агент остановлен</dd>
+              </div>
+              <div><dt>02</dt><dd>Контекст передан в новую сессию</dd>
+              </div>
+              <div><dt>03</dt><dd>Результат повторно проверен</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+        <div class="cp-panel" id="cp-panel-mem-4" role="tabpanel" aria-labelledby="cp-tab-mem-4" tabindex="0" hidden>
+          <div class="cp-darkdoc"><span><svg class="cp-i" aria-hidden="true"><use href="#cp-i-md"/></svg> Markdown</span>
+            <h3>Передача задачи</h3>
+            <div class="cp-code"><b># Цель</b><br>Продолжить работу над флагом --total-only.<br><br><b>## Изменённые файлы</b><br>work-time.js<br>work-time.test.js<br><br><b>## Приёмка</b><br>npm test</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cp-notes">
+      <article><svg class="cp-i" aria-hidden="true"><use href="#cp-i-folder"/></svg>
+        <h3>Открытые файлы</h3>
+        <p>Задачи и решения можно читать прямо в редакторе.</p>
+      </article>
+      <article><svg class="cp-i" aria-hidden="true"><use href="#cp-i-git"/></svg>
+        <h3>История в Git</h3>
+        <p>Правки в памяти проекта проходят через обычный diff.</p>
+      </article>
+      <article><svg class="cp-i" aria-hidden="true"><use href="#cp-i-terminal"/></svg>
+        <h3>Локальный журнал</h3>
+        <p>События и результаты попыток хранятся на вашем компьютере.</p>
+      </article>
+      <article><svg class="cp-i" aria-hidden="true"><use href="#cp-i-md"/></svg>
+        <h3>Обычный Markdown</h3>
+        <p>Для ручной передачи достаточно файла и той же версии кода.</p>
+      </article>
+    </div>
+  </div>
+</section>
+<section class="cp-chapter cp-handoff" id="handoff">
+  <div class="cp-wrap">
+    <div class="cp-titleblock"><span class="cp-chapter-kicker">Передача <span aria-hidden="true">›</span></span>
+      <h2>С чего начнёт агент?</h2>
+      <p>Пакет следующей сессии можно прочитать заранее. Вот задание, которое помогло продолжить реальную работу над CLI.</p><a class="cp-plainlink" href="handoff-example.md" download>Скачать пример передачи <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="cp-handoff-scene">
+      <div class="cp-handoff-sheet">
+        <div class="cp-titlebar"><svg class="cp-i" aria-hidden="true"><use href="#cp-i-file"/></svg> Учёт времени <i>/</i> Передача</div>
+        <div class="cp-sheet-body"><span class="cp-sheet-icon"><svg class="cp-i" aria-hidden="true"><use href="#cp-i-inbox"/></svg></span>
+          <h3>Контекст новой сессии</h3>
+          <p>Пакет для продолжения работы</p><hr><small>ЗАДАЧА</small><h4>Завершить режим --total-only</h4>
+          <p>Напечатать только общее число минут за период и сохранить прежние форматы отчёта.</p><small>ИЗМЕНЕНИЯ ПЕРВОГО АГЕНТА</small>
+          <div class="cp-file-row"><svg class="cp-i" aria-hidden="true"><use href="#cp-i-file"/></svg><code>work-time.js</code><span>M</span>
+          </div>
+          <div class="cp-file-row"><svg class="cp-i" aria-hidden="true"><use href="#cp-i-file"/></svg><code>work-time.test.js</code><span>M</span>
+          </div><small>ЧЕМ ПРОВЕРИТЬ</small>
+          <div class="cp-sheet-cmd"><code>$ npm test</code><span>Обязательная команда</span>
+          </div>
+        </div>
+      </div>
+      <div class="cp-questions" aria-label="Содержимое передачи">
+        <details class="cp-q cp-q1">
+          <summary><i><svg class="cp-i" aria-hidden="true"><use href="#cp-i-activity"/></svg></i><span>Что изменилось?</span><b aria-hidden="true">+</b>
+          </summary>
+          <p>Первый агент изменил work-time.js и work-time.test.js. Вторая сессия получает список правок вместе с задачей.</p>
+        </details>
+        <details class="cp-q cp-q2">
+          <summary><i><svg class="cp-i" aria-hidden="true"><use href="#cp-i-inbox"/></svg></i><span>С чего продолжить?</span><b aria-hidden="true">+</b>
+          </summary>
+          <p>Проверьте реализацию --total-only и регрессионный тест. Для пустого периода команда должна вернуть 0.</p>
+        </details>
+        <details class="cp-q cp-q3">
+          <summary><i><svg class="cp-i" aria-hidden="true"><use href="#cp-i-shield"/></svg></i><span>Как принять результат?</span><b aria-hidden="true">+</b>
+          </summary>
+          <p>Запустите npm test. Успех означает код выхода 0, итог за два дня — 95 минут.</p>
+        </details>
+      </div>
+    </div>
+    <div class="cp-triptych cp-benefits">
+      <article>
+        <div class="cp-illus cp-benefit-files" aria-hidden="true">
+          <div class="cp-folder-art"><em></em><i></i><b></b>
+          </div>
+        </div>
+        <h3>Файлы и изменения</h3>
+        <p>Изменившиеся файлы и последние действия агента собраны в одном месте.</p>
+      </article>
+      <article>
+        <div class="cp-illus cp-benefit-note" aria-hidden="true">
+          <div class="cp-envelope"><i><svg class="cp-i" aria-hidden="true"><use href="#cp-i-md"/></svg></i><b></b>
+          </div>
+        </div>
+        <h3>Контекст для напарника</h3>
+        <p>Скачайте Markdown из «Передачи» и откройте его в новой сессии с той же версией кода.</p>
+      </article>
+      <article>
+        <div class="cp-illus cp-benefit-check" aria-hidden="true">
+          <div class="cp-tile-check"><svg class="cp-i" aria-hidden="true"><use href="#cp-i-check"/></svg>
+          </div>
+          <div class="cp-tile-under">
+          </div>
+        </div>
+        <h3>Результат с доказательством</h3>
+        <p>Откройте отчёт проверяющего: там критерии, команды и фактический вывод.</p>
+      </article>
+    </div>
+  </div>
+</section>
+<section class="cp-chapter cp-install" id="start">
+  <div class="cp-wrap cp-install-grid">
+    <div class="cp-install-text">
+      <h2>Начните со своего проекта</h2>
+      <p>Нужны Git и Node.js 22.18 или новее с npm. Установите Pilot и откройте дашборд в папке своего проекта.</p>
+      <div class="cp-install-links">
+        <button type="button" class="cp-darkbutton" id="copy" aria-describedby="commands">Скопировать команду</button><a class="cp-plainlink" href="https://github.com/yevgenevic/context-pilot">GitHub <span aria-hidden="true">↗</span></a>
+      </div><span id="cp-copy-status" role="status"></span>
+      <details class="cp-install-terminal">
+        <summary>Показать команды установки и запуска</summary>
+        <div class="cp-install-code"><small># Установите CLI</small><pre id="commands">npm install -g https://github.com/yevgenevic/context-pilot/releases/download/v0.1.3/context-pilot-0.1.3.tgz</pre><small># В папке своего проекта</small><code><i>$</i> pilot init<br><i>$</i> pilot dashboard</code>
+        </div>
+      </details>
+    </div><img class="cp-install-art" src="project-entry.svg" width="440" height="340" loading="lazy" alt="">
+  </div>
+  <p class="cp-install-note">Для автоматического запуска нужен Codex CLI с выполненным входом. Для Claude Code скачайте файл передачи. <code>pilot doctor</code> покажет, что доступно.</p>
+</section>
+</main>
+<footer class="cp-footer">
+<div class="cp-wrap">
+  <div class="cp-footer-grid"><a class="cp-wordmark" href="#top"><svg class="cp-i" aria-hidden="true"><use href="#cp-i-mark"/></svg>Context Pilot</a>
+    <div>
+      <h3>Обзор</h3><a href="#product">Продукт</a><a href="#case">Запуск задачи</a><a href="#story">История запуска</a><a href="#memory">Память проекта</a><a href="#handoff">Передача</a>
+    </div>
+    <div>
+      <h3>Ресурсы</h3><a href="https://github.com/yevgenevic/context-pilot#readme">Как начать</a><a href="https://github.com/yevgenevic/context-pilot">Исходный код</a><a href="https://github.com/yevgenevic/context-pilot/releases">Выпуски</a>
+    </div>
+    <div>
+      <h3>Разработка</h3><a href="https://github.com/yevgenevic/context-pilot/tree/main/src">Код CLI</a><a href="https://github.com/yevgenevic/context-pilot/tree/main/ui">Дашборд</a><a href="https://github.com/yevgenevic/context-pilot/tree/main/test">Тесты</a>
+    </div>
+    <div>
+      <h3>Установить</h3><a href="#start">Установка CLI</a><a href="https://github.com/yevgenevic/context-pilot/releases/download/v0.1.3/context-pilot-0.1.3.tgz">Пакет v0.1.3</a><a href="https://github.com/yevgenevic/context-pilot/issues">Сообщить об ошибке</a>
+    </div>
+  </div>
+  <div class="cp-colophon"><span>© Context Pilot</span><a href="#top">Наверх ↑</a>
+  </div>
+</div>
+</footer>
+</body>
+</html>
